@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// Using built-in fetch API (Node.js 18+)
 
 exports.handler = async (event, context) => {
     // Only allow POST requests
@@ -28,6 +28,9 @@ exports.handler = async (event, context) => {
     }
 
     try {
+        console.log('Function invoked with method:', event.httpMethod);
+        console.log('Request body:', event.body);
+        
         // Get the auth token from environment variables
         const authToken = process.env.CHATBOT_AUTH_TOKEN;
         
@@ -39,12 +42,26 @@ exports.handler = async (event, context) => {
                     'Access-Control-Allow-Origin': '*',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ error: 'Server configuration error' })
+                body: JSON.stringify({ error: 'Server configuration error - AUTH_TOKEN not set' })
             };
         }
 
         // Parse the request body
-        const requestBody = JSON.parse(event.body);
+        let requestBody;
+        try {
+            requestBody = JSON.parse(event.body);
+        } catch (parseError) {
+            console.error('Failed to parse request body:', parseError);
+            return {
+                statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ error: 'Invalid JSON in request body' })
+            };
+        }
+        
         const { message, messages, stream = true } = requestBody;
 
         if (!message) {
@@ -68,14 +85,30 @@ exports.handler = async (event, context) => {
         console.log('Forwarding request to API:', { message, stream, messagesCount: messages?.length || 0 });
 
         // Make the request to the external API
-        const response = await fetch('https://129.80.218.9/api/agent/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(payload)
-        });
+        let response;
+        try {
+            response = await fetch('https://129.80.218.9/api/agent/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch (fetchError) {
+            console.error('Fetch error:', fetchError);
+            return {
+                statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    error: 'Failed to connect to API',
+                    details: fetchError.message 
+                })
+            };
+        }
 
         if (!response.ok) {
             console.error('API request failed:', response.status, response.statusText);
