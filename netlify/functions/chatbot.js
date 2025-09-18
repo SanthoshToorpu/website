@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
         };
     }
 
-    // Handle CORS preflight
+    // Handle CORS preflight requests
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
         const authToken = process.env.CHATBOT_AUTH_TOKEN;
         
         if (!authToken) {
-            console.error('CHATBOT_AUTH_TOKEN not found in environment variables');
+            console.error('CHATBOT_AUTH_TOKEN environment variable not set');
             return {
                 statusCode: 500,
                 headers: {
@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
 
         // Parse the request body
         const requestBody = JSON.parse(event.body);
-        const { message, stream, messages } = requestBody;
+        const { message, messages, stream = true } = requestBody;
 
         if (!message) {
             return {
@@ -60,15 +60,15 @@ exports.handler = async (event, context) => {
 
         // Prepare the payload for the API
         const payload = {
-            message,
-            stream: stream || true,
+            message: message,
+            stream: stream,
             messages: messages || []
         };
 
-        console.log('Forwarding request to API:', { message: message.substring(0, 100) + '...' });
+        console.log('Forwarding request to API:', { message, stream, messagesCount: messages?.length || 0 });
 
-        // Make the request to the actual API
-        const apiResponse = await fetch('https://129.80.218.9/api/agent/chat', {
+        // Make the request to the external API
+        const response = await fetch('https://129.80.218.9/api/agent/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -77,38 +77,41 @@ exports.handler = async (event, context) => {
             body: JSON.stringify(payload)
         });
 
-        if (!apiResponse.ok) {
-            console.error('API request failed:', apiResponse.status, apiResponse.statusText);
+        if (!response.ok) {
+            console.error('API request failed:', response.status, response.statusText);
             return {
-                statusCode: apiResponse.status,
+                statusCode: response.status,
                 headers: {
                     'Access-Control-Allow-Origin': '*',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
-                    error: `API request failed: ${apiResponse.status} ${apiResponse.statusText}` 
+                    error: `API request failed: ${response.status} ${response.statusText}` 
                 })
             };
         }
 
-        // Check if the response is streaming
-        const contentType = apiResponse.headers.get('content-type');
-        
-        if (contentType && contentType.includes('text/event-stream')) {
-            // Handle streaming response
-            return {
-                statusCode: 200,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive'
-                },
-                body: apiResponse.body
+        // Handle streaming response
+        if (stream && response.body) {
+            // Set up streaming response headers
+            const headers = {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
             };
+
+            // Create a readable stream that forwards the API response
+            const streamResponse = {
+                statusCode: 200,
+                headers,
+                body: response.body
+            };
+
+            return streamResponse;
         } else {
-            // Handle regular JSON response
-            const responseData = await apiResponse.text();
+            // Handle non-streaming response
+            const data = await response.text();
             
             return {
                 statusCode: 200,
@@ -116,7 +119,7 @@ exports.handler = async (event, context) => {
                     'Access-Control-Allow-Origin': '*',
                     'Content-Type': 'application/json'
                 },
-                body: responseData
+                body: data
             };
         }
 
