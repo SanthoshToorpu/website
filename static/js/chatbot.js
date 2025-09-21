@@ -466,7 +466,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // API Configuration
-    const API_BASE_URL = '/.netlify/functions/chat';
+    const API_BASE_URL = 'https://129.80.218.9.nip.io/api/agent/chat';
+    const AUTH_TOKEN = process.env.AUTH_TOKEN;
     
     // API connection status
     let isConnected = false;
@@ -492,7 +493,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const response = await fetch(API_BASE_URL, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AUTH_TOKEN}`
                 },
                 body: JSON.stringify(payload)
             });
