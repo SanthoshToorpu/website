@@ -1,8 +1,20 @@
 {
   "name": "netlify-functions",
   "version": "1.0.0",
-  "description": "Netlify functions for chatbot API proxy",
-  "main": "chatbot.js",
+  "description": "Netlify serverless functions for Kubeflow website",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "netlify",
+    "functions",
+    "serverless",
+    "kubeflow"
+  ],
+  "author": "",
+  "license": "ISC",
   "engines": {
     "node": ">=18.0.0"
   }

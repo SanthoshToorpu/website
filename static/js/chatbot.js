@@ -465,8 +465,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log(`Deleted chat: ${chatToDelete.name}`);
     }
 
-    // API Configuration - Using Netlify function for secure communication
-    const API_BASE_URL = '/.netlify/functions/chatbot';
+    // API Configuration
+    const API_BASE_URL = '/.netlify/functions/chat';
     
     // API connection status
     let isConnected = false;
@@ -566,78 +566,78 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Received API response:', response);
         
         // Handle different response types
-                    if (response.type === 'system') {
-                        console.log('System message:', response.content);
-                        return;
-                    }
-                    
-                    if (response.type === 'citations') {
-                        addCitations(response.citations);
-                        return;
-                    }
-                    
-                    if (response.type === 'content') {
-                        if (!currentMessageDiv) {
-                            if (!chatMessages) {
-                                console.error('Cannot display message: chat messages container not found');
-                                return;
-                            }
+        if (response.type === 'system') {
+            console.log('System message:', response.content);
+            return;
+        }
+        
+        if (response.type === 'citations') {
+            addCitations(response.citations);
+            return;
+        }
+        
+        if (response.type === 'content') {
+            if (!currentMessageDiv) {
+                if (!chatMessages) {
+                    console.error('Cannot display message: chat messages container not found');
+                    return;
+                }
 
-                            // Create new message div for the first token
-                            currentMessageDiv = document.createElement('div');
-                            currentMessageDiv.className = 'message bot-message';
-                            
-                            const contentDiv = document.createElement('div');
-                            contentDiv.className = 'message-content';
-                            
-                            const paragraph = document.createElement('p');
-                            currentMessageDiv.appendChild(contentDiv);
-                            contentDiv.appendChild(paragraph);
-                            
-                            chatMessages.appendChild(currentMessageDiv);
-                            removeTypingIndicator();
-                        }
-                        
+                // Create new message div for the first token
+                currentMessageDiv = document.createElement('div');
+                currentMessageDiv.className = 'message bot-message';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                const paragraph = document.createElement('p');
+                currentMessageDiv.appendChild(contentDiv);
+                contentDiv.appendChild(paragraph);
+                
+                chatMessages.appendChild(currentMessageDiv);
+                removeTypingIndicator();
+            }
+            
             // Append new content
-                        currentMessageContent += response.content;
-                        const paragraph = currentMessageDiv.querySelector('p');
-                        
-                        // Format streaming content
-                        const formattedText = formatMarkdown(currentMessageContent, true);
-                        paragraph.innerHTML = formattedText;
-                        
-                        // Apply syntax highlighting to any new code blocks
-                        if (window.Prism) {
-                            const codeBlocks = currentMessageDiv.querySelectorAll('pre code');
-                            codeBlocks.forEach(block => {
-                                if (!block.classList.contains('prism-highlighted')) {
-                                    block.classList.add('prism-highlighted');
-                                    window.Prism.highlightElement(block);
-                                }
-                            });
-                        }
-                        
-                        scrollToBottom();
+            currentMessageContent += response.content;
+            const paragraph = currentMessageDiv.querySelector('p');
+            
+            // Format streaming content
+            const formattedText = formatMarkdown(currentMessageContent, true);
+            paragraph.innerHTML = formattedText;
+            
+            // Apply syntax highlighting to any new code blocks
+            if (window.Prism) {
+                const codeBlocks = currentMessageDiv.querySelectorAll('pre code');
+                codeBlocks.forEach(block => {
+                    if (!block.classList.contains('prism-highlighted')) {
+                        block.classList.add('prism-highlighted');
+                        window.Prism.highlightElement(block);
                     }
-                    
-                    // Handle end of message or errors
-                    if (response.type === 'end') {
-                        // Store the complete bot response in conversation history
-                        if (currentMessageContent.trim()) {
-                            messagesHistory.push({
-                                role: 'assistant',
-                                content: currentMessageContent.trim()
-                            });
-                        }
-                        currentMessageDiv = null;
-                        currentMessageContent = '';
-                        autoSaveCurrentChat();
-                    } else if (response.type === 'error') {
-                        removeTypingIndicator();
-                        addMessage('Error: ' + response.content, 'bot');
-                        currentMessageDiv = null;
-                        currentMessageContent = '';
-                    }
+                });
+            }
+            
+            scrollToBottom();
+        }
+        
+        // Handle end of message or errors
+        if (response.type === 'end') {
+            // Store the complete bot response in conversation history
+            if (currentMessageContent.trim()) {
+                messagesHistory.push({
+                    role: 'assistant',
+                    content: currentMessageContent.trim()
+                });
+            }
+            currentMessageDiv = null;
+            currentMessageContent = '';
+            autoSaveCurrentChat();
+        } else if (response.type === 'error') {
+            removeTypingIndicator();
+            addMessage('Error: ' + response.content, 'bot');
+            currentMessageDiv = null;
+            currentMessageContent = '';
+        }
     }
 
     // Load chats from storage and initialize
