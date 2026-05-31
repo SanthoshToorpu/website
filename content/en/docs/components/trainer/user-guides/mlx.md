@@ -42,32 +42,6 @@ This setup is especially powerful: you can train or fine-tune models on a GPU cl
 seamlessly evaluate them locally on an Apple silicon machine like in
 [this MNIST example](https://github.com/kubeflow/trainer/tree/master/examples/mlx/image-classification/mnist.ipynb).
 
-### Configuring GPU Resources for MLX
-
-At the moment, Kubeflow Trainer does not allow configuring MLX resources directly in a TrainJob
-specification. To adjust GPU allocations or other container resource settings, you must manually
-patch the ClusterTrainingRuntime. Native resource configuration support within TrainJob is being
-tracked in [kubeflow/trainer#2650](https://github.com/kubeflow/trainer/issues/2650)
-
-The following command allocates 1 GPU per training node:
-
-```sh
-kubectl patch clustertrainingruntime mlx-distributed \
-  --type='json' \
-  -p '[
-    {
-      "op": "add",
-      "path": "/spec/template/spec/replicatedJobs/0/template/spec/template/spec/containers/0/resources",
-      "value": { "limits": { "nvidia.com/gpu": "1" } }
-    },
-    {
-      "op": "add",
-      "path": "/spec/template/spec/replicatedJobs/1/template/spec/template/spec/containers/0/resources",
-      "value": { "limits": { "nvidia.com/gpu": "1" } }
-    }
-  ]'
-```
-
 ## Get MLX Runtime Packages
 
 MLX runtime comes with several pre-installed Python packages.
@@ -127,10 +101,13 @@ def get_mlx_dist():
 
 # Create the TrainJob on 3 nodes.
 job_id = TrainerClient().train(
-    runtime=TrainerClient().get_runtime("mlx-distributed"),
+    runtime="mlx-distributed",
     trainer=CustomTrainer(
         func=get_mlx_dist,
         num_nodes=3,
+        resources_per_node={
+            "gpu": 1,
+        },
     ),
 )
 
@@ -139,7 +116,7 @@ TrainerClient().wait_for_job_status(job_id)
 
 
 # Since we launch MLX with `mpirun`, all logs should be consumed from the node-0.
-print(TrainerClient().get_job_logs(name=job_id, node_rank=0)["node-0"])
+print("\n".join(TrainerClient().get_job_logs(name=job_id)))
 ```
 
 You should see the distributed environment as follows:
@@ -225,10 +202,13 @@ After configuring the MLX training function, use the `train()` API to create a T
 from kubeflow.trainer import TrainerClient, CustomTrainer
 
 job_id = TrainerClient().train(
-    runtime=TrainerClient().get_runtime("mlx-distributed"),
+    runtime="mlx-distributed",
     trainer=CustomTrainer(
         func=fine_tune_llama,
         num_nodes=2,
+        resources_per_node={
+            "gpu": 1,
+        },
     ),
 )
 ```
@@ -238,7 +218,7 @@ job_id = TrainerClient().train(
 You can use the `get_job_logs()` API to see your TrainJob logs:
 
 ```py
-print(TrainerClient().get_job_logs(name=job_id)["node-0"])
+print("\n".join(TrainerClient().get_job_logs(name=job_id)))
 ```
 
 {{% alert title="Note" color="info" %}}

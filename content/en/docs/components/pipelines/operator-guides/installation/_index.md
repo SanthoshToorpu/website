@@ -21,8 +21,11 @@ You should be familiar with [Kubernetes](https://kubernetes.io/docs/home/),
      export PIPELINE_VERSION={{% pipelines/latest-version %}}
      kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
      kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-     kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+     kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION" 
      ```
+
+> **Note:** The placeholder `{{% pipelines/latest-version %}}` automatically resolves to the latest Kubeflow Pipelines release (e.g., `2.5.0`).
+> Users don’t need to manually update this value each time a new release is published.
 
 > 💡 **Troubleshooting**: If you encounter persistent pod crashes (e.g., `proxy-agent`, `workflow-controller`) after applying the default config, you may try using the `platform-agnostic` configuration instead:
 >
@@ -57,6 +60,13 @@ Kubeflow Pipelines can be deployed in Kubernetes native API mode, which stores p
 > ```
 
 > 💡 **Migration Note**: If you are upgrading from a previous version not deployed in Kubernetes native API mode, consider leveraging the [migration script](https://github.com/kubeflow/pipelines/tree/master/tools/k8s-native) to export all existing pipelines and pipeline versions as Kubernetes manifests which can be applied after upgrading Kubeflow Pipelines.
+
+## Deploying Kubeflow Pipelines with Pod-to-Pod TLS Enabled
+Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security. 
+
+**⚠️ Version Requirement**: Pod-to-pod TLS mode is available starting from Kubeflow Pipelines version 2.15.0.
+
+Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls). 
 
 ## Accessing the Kubeflow Pipelines UI
 

@@ -16,7 +16,13 @@ Kubeflow Trainer.
 
 ### Installing the Kubeflow Python SDK
 
-Install the latest Kubeflow Python SDK version directly from the source repository:
+Install the latest stable version of Kubeflow Python SDK:
+
+```bash
+pip install -U kubeflow
+```
+
+For the latest changes of Kubeflow Python SDK, install from the source repository directly:
 
 ```bash
 pip install git+https://github.com/kubeflow/sdk.git@main
@@ -82,11 +88,19 @@ def train_pytorch():
     model.train()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
-    # [4] Get the Fashion-MNIST dataset and distributed it across all available devices.
+    # [4] Get the Fashion-MNIST dataset on local_rank=0 process.
+    if local_rank == 0:
+        dataset = datasets.FashionMNIST(
+            "./data",
+            train=True,
+            download=True,
+            transform=transforms.Compose([transforms.ToTensor()]),
+        )
+    dist.barrier()
     dataset = datasets.FashionMNIST(
         "./data",
         train=True,
-        download=True,
+        download=False,
         transform=transforms.Compose([transforms.ToTensor()]),
     )
     train_loader = DataLoader(
@@ -151,12 +165,11 @@ job_id = TrainerClient().train(
         func=train_pytorch,
         num_nodes=4,
         resources_per_node={
-            "cpu": 5,
+            "cpu": 3,
             "memory": "16Gi",
             "gpu": 1, # Comment this line if you don't have GPUs.
         },
-    ),
-    runtime=TrainerClient().get_runtime("torch-distributed"),
+    )
 )
 ```
 
@@ -179,9 +192,8 @@ Step: node-3, Status: Succeeded, Devices: gpu x 1
 Finally, you can check the training logs from the master node:
 
 ```python
-logs = TrainerClient().get_job_logs(name=job_id)
-
-print(logs["node-0"])
+for logline in TrainerClient().get_job_logs(job_id, follow=True):
+    print(logline)
 ```
 
 Since training was run on 4 GPUs, each PyTorch node processes 60,000 / 4 = 15,000 images

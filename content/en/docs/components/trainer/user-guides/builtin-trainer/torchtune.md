@@ -7,7 +7,7 @@ weight = 20
 This guide describes how to fine-tune LLMs using `BuiltinTrainer` and `TorchTuneConfig`. `TorchTuneConfig` leverages [TorchTune](https://github.com/pytorch/torchtune) to streamline LLMs fine-tuning on Kubernetes. To understand the concept of `BuiltinTrainer`, see the [overview guide](/docs/components/trainer/user-guides/builtin-trainer/overview.md).
 
 {{% alert title="Note" color="info" %}}
-The supported model list can be seen in [this directory](https://github.com/kubeflow/trainer/tree/master/manifests/base/runtimes/torchtune). It's worth noticing that we do not support multi-node fine-tuning with TorchTune.
+The supported model list can be seen in [this directory](https://github.com/kubeflow/trainer/tree/master/manifests/base/runtimes/torchtune). It's worth noticing that we do not support multi-node fine-tuning with TorchTune. However, **LoRA (PEFT) fine-tuning is supported** starting from Kubeflow Trainer V2.1.0 and SDK v0.2.0.
 
 If you want to learn more about TorchTune BuiltinTrainer, please refer to [KEP-2401](https://github.com/kubeflow/trainer/tree/master/docs/proposals/2401-llm-trainer-v2) in Kubeflow Trainer.
 {{% /alert %}}
@@ -25,8 +25,6 @@ client = TrainerClient()
 for r in TrainerClient().list_runtimes():
     if r.name.startswith("torchtune"):
         print(r)
-
-runtime = client.get_runtime("torchtune-llama3.2-1b")
 ```
 
 Output:
@@ -39,33 +37,6 @@ Runtime(name='torchtune-llama3.2-3b', trainer=Trainer(trainer_type=<TrainerType.
 ## Fine-Tune LLM with TorchTune BuiltinTrainer
 
 The guide below shows how to fine-tune Llama-3.2-1B-Instruct with alpaca dataset by BuiltinTrainer.
-
-### Create PVCs for Models and Datasets
-
-{{% alert title="Note" color="info" %}}
-Currently, we do not support automatically orchestrating the volume claim.
-
-To follow up with this problem, please refer to [this issue](https://github.com/kubeflow/trainer/issues/2630).
-{{% /alert %}}
-
-We need to manually create PVCs for each models we want to fine-tune. Please note that **the PVC name must be equal to the TorchTune runtime's name**. In this example, it's `torchtune-llama3.2-1b`.
-
-```Python
-# Create a PersistentVolumeClaim for the TorchTune Llama 3.2 1B model.
-client.core_api.create_namespaced_persistent_volume_claim(
-  body=client.V1PersistentVolumeClaim(
-    api_version="v1",
-    kind="PersistentVolumeClaim",
-    metadata=client.V1ObjectMeta(name="torchtune-llama3.2-1b"),
-    spec=client.V1PersistentVolumeClaimSpec(
-      access_modes=["ReadWriteOnce"],
-      resources=client.V1ResourceRequirements(
-        requests={"storage": "20Gi"}
-      ),
-    ),
-  ),
-)
-```
 
 ### Use TorchTune BuiltinTrainer with train() API
 
@@ -81,7 +52,7 @@ For example, you can use the `train()` API to fine-tune the Llama-3.2-1B-Instruc
 
 ```python
 job_name = client.train(
-    runtime=client.get_runtime("torchtune-llama3.2-1b"),
+    runtime="torchtune-llama3.2-1b",
     initializer=Initializer(
         model=HuggingFaceModelInitializer(
             storage_uri="hf://meta-llama/Llama-3.2-1B-Instruct",
@@ -107,8 +78,7 @@ We can use the `get_job_logs()` API to get the TrainJob logs.
 ```python
 from kubeflow.trainer.constants import constants
 
-log_dict = client.get_job_logs(job_name, step=constants.DATASET_INITIALIZER)
-print(log_dict[constants.DATASET_INITIALIZER])
+print("\n".join(client.get_job_logs(job_name, step=constants.DATASET_INITIALIZER)))
 ```
 
 Output:
@@ -124,8 +94,7 @@ Fetching 3 files: 100%|██████████| 3/3 [00:01<00:00,  1.82it
 #### Model Initializer
 
 ```python
-log_dict = client.get_job_logs(job_name, step=constants.MODEL_INITIALIZER)
-print(log_dict[constants.MODEL_INITIALIZER])
+print("\n".join(client.get_job_logs(job_name, step=constants.MODEL_INITIALIZER)))
 ```
 
 Output:
@@ -141,8 +110,7 @@ Fetching 8 files: 100%|██████████| 8/8 [01:02<00:00,  7.87s/
 #### Training Node
 
 ```python
-log_dict = client.get_job_logs(job_name, follow=False)
-print(log_dict[f"{constants.NODE}-0"])
+print("\n".join(client.get_job_logs(job_name)))
 ```
 
 Output:
@@ -160,7 +128,7 @@ INFO:torchtune.utils._logging:Memory stats after model init:
 	GPU peak memory allocation: 2.33 GiB
 	GPU peak memory reserved: 2.34 GiB
 	GPU peak memory active: 2.33 GiB
-/opt/conda/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+/opt/conda/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user.
   warnings.warn(  # warn only once
 INFO:torchtune.utils._logging:Optimizer is initialized.
 INFO:torchtune.utils._logging:Loss is initialized.
@@ -180,7 +148,7 @@ Running with torchrun...
 
 ### Get the Fine-Tuned Model
 
-After TrainJob completes the fine-tuning task, the fine-tuned model will be stored into the `/workspace/output ` directory, which can be shared across Pods through PVC mounting. You can find it in another Pod's `/<mountDir>/output` directory if you mount the PVC under `/<mountDir>`.
+After TrainJob completes the fine-tuning task, the fine-tuned model will be stored into the `/workspace/output` directory. The TrainJob automatically creates and manages a PVC to store the model and dataset, which can be shared across Pods. You can access the fine-tuned model in another Pod by mounting the same PVC under `/<mountDir>`, where you'll find the output in `/<mountDir>/output`.
 
 ## Parameters
 
@@ -207,6 +175,7 @@ Currently, we support:
 
 1. Data Directory: Use all data files under this directory. For example, `hf://tatsu-lab/alpaca/data` uses all data files under the `/data` directory of `tatsu-lab/alpaca` repo in HuggingFace.
 2. Single Data File: Use the single data file given the path. For example, `hf://tatsu-lab/alpaca/data/xxx.parquet` uses the single `/data/xxx.parquet` data file of `tatsu-lab/alpaca` repo in HuggingFace.
+
 {{% /alert %}}
 
 #### Model Initializer
@@ -243,6 +212,11 @@ torchtune_config = TorchTuneConfig(
     epochs=10,
     loss=Loss.CEWithChunkedOutputLoss,
     num_nodes=1,
+    peft_config=LoraConfig(
+        lora_rank=8,
+        lora_alpha=16,
+        lora_dropout=0.1,
+    ),
     dataset_preprocess_config=TorchTuneInstructDataset(
         source=DataFormat.PARQUET,
         split="train[:95%]",
@@ -257,3 +231,5 @@ torchtune_config = TorchTuneConfig(
 ## Next Steps
 
 - Run the example to [fine-tune the Llama-3.2-1B-Instruct LLM](https://github.com/kubeflow/trainer/blob/master/examples/torchtune/llama3_2/alpaca-trainjob-yaml.ipynb)
+
+- Check out the example to [fine-tune the Qwen-2.5-1.5B LLM](https://github.com/kubeflow/trainer/blob/master/examples/torchtune/qwen2_5/qwen2.5-1.5B-with-alpaca.ipynb)

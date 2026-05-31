@@ -1,6 +1,6 @@
 +++
-title =  "Community"
-description = "About the Kubeflow community"
+title =  "Community & Meetings"
+description = "About the Kubeflow community and public meetings"
 weight = 10
 aliases = ["/docs/community/"]
 +++
@@ -8,6 +8,10 @@ aliases = ["/docs/community/"]
 ## Contributing
 
 If you are interested in learning more about how to participate in and contribute to the Kubeflow community, take a look at [Contributing](/docs/about/contributing/)!
+
+## Survey
+
+There is a [continues survey](https://docs.google.com/forms/d/e/1FAIpQLSd1HTLNH3KSVOHBkwwVobR3FaJqhCVmYrywaqsG6vaEGom6jA/viewform?usp=dialog) where users, customers and companies can provide feedback for the open source project.
 
 ## Kubeflow Slack Channels
 
@@ -25,19 +29,20 @@ The following table lists official Kubeflow channels which are hosted on the **C
 <div class="table-responsive">
 <div class="table table-bordered">
 
-| Description                             | Link                                                                           |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| Announcements                           | [#kubeflow-announcements](https://app.slack.com/client/T08PSQ7BQ/C01EV0FV154)  |
-| Contributors                            | [#kubeflow-contributors](https://app.slack.com/client/T08PSQ7BQ/C0742LBR5BM)   |
-| Katib                                   | [#kubeflow-katib](https://app.slack.com/client/T08PSQ7BQ/C073N7AS48P)          |
-| ML experience                           | [#kubeflow-ml-experience](https://app.slack.com/client/T08PSQ7BQ/C08KJBVDH5H)  |
-| Model Registry                          | [#kubeflow-model-registry](https://app.slack.com/client/T08PSQ7BQ/C073N7B6K3R) |
-| Notebooks                               | [#kubeflow-notebooks](https://app.slack.com/client/T08PSQ7BQ/C073W562HFY)      |
-| Pipelines                               | [#kubeflow-pipelines](https://app.slack.com/client/T08PSQ7BQ/C073N7BMLB1)      |
-| Platform Manifests and Release Planning | [#kubeflow-platform](https://app.slack.com/client/T08PSQ7BQ/C073W572LA2)       |
-| Spark Operator                          | [#kubeflow-spark-operator](https://app.slack.com/client/T08PSQ7BQ/C074588U7EG) |
-| Kubeflow Trainer and MPI Operator       | [#kubeflow-trainer](https://app.slack.com/client/T08PSQ7BQ/C0742LDFZ4K)        |
-| KServe                                  | [#kserve](https://app.slack.com/client/T08PSQ7BQ/C06AH2C3K8B)                  |
+| Description                             | Link                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| Announcements                           | [#kubeflow-announcements](https://app.slack.com/client/T08PSQ7BQ/C01EV0FV154)       |
+| Contributors                            | [#kubeflow-contributors](https://app.slack.com/client/T08PSQ7BQ/C0742LBR5BM)        |
+| Outreach                                | [#kubeflow-outreach](https://app.slack.com/client/T08PSQ7BQ/C073N7BMLB1)            |
+| Katib                                   | [#kubeflow-katib](https://app.slack.com/client/T08PSQ7BQ/C073N7AS48P)               |
+| ML experience                           | [#kubeflow-ml-experience](https://app.slack.com/client/T08PSQ7BQ/C08KJBVDH5H)       |
+| Hub (formerly Model Registry)           | [#kubeflow-model-registry](https://app.slack.com/client/T08PSQ7BQ/C073N7B6K3R)      |
+| Notebooks                               | [#kubeflow-notebooks](https://app.slack.com/client/T08PSQ7BQ/C073W562HFY)           |
+| Pipelines                               | [#kubeflow-pipelines](https://app.slack.com/client/T08PSQ7BQ/C073N7BMLB1)           |
+| Platform Manifests and Release Planning | [#kubeflow-platform](https://app.slack.com/client/T08PSQ7BQ/C073W572LA2)            |
+| Spark on Kubernetes                     | [#kubeflow-spark-on-kubernetes](https://app.slack.com/client/T08PSQ7BQ/C074588U7EG) |
+| Kubeflow Trainer and MPI Operator       | [#kubeflow-trainer](https://app.slack.com/client/T08PSQ7BQ/C0742LDFZ4K)             |
+| KServe                                  | [#kserve](https://app.slack.com/client/T08PSQ7BQ/C06AH2C3K8B)                       |
 
 </div>
 </div>
@@ -52,23 +57,8 @@ The official Kubeflow mailing list is a Google Group called [kubeflow-discuss](h
 
 ## Kubeflow Community Meetings
 
-The Kubeflow community holds various meetings to all users and contributors to discus
+The Kubeflow community holds various public meetings to all users and contributors to discus
 issues/proposals and present demos/products.
-
-### Subscribe to the Kubeflow Calendar
-
-By joining the [`kubeflow-discuss`](#kubeflow-mailing-list) mailing list, you should automatically see all the Kubeflow community meetings in your Google calendar.
-
-If this does not work, [manually add](https://calendar.google.com/calendar/u/0/r/settings/addcalendar) the following name to your Google calendar:
-
-```text
-kubeflow.org_7l5vnbn8suj2se10sen81d9428@group.calendar.google.com
-```
-
-<img src="/docs/about/images/google-calendar.png"
-      alt="Google Calendar"
-      class="mt-3 mb-3 border rounded">
-</img>
 
 ### List of Available Meetings
 
@@ -77,27 +67,30 @@ The following list shows available Kubeflow community meetings with the correspo
 <div class="table-responsive">
 <div class="table table-bordered">
 
-| Meeting Name                    | Meeting Notes                                                                                      | Recordings                                                                                   |
-| ------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Kubeflow community call         | [Google Doc](https://bit.ly/kf-meeting-notes)                                                      | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_ypvsQu10SGRmhf2S7mbYL5) |
-| Kubeflow AutoML and Training WG | [Google Doc](https://bit.ly/2PWVCkV)                                                               | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_xAiAY-3Vw94lrUs4xeNZ3j) |
-| Kubeflow SDK and ML Experience WG | [Google Doc](https://bit.ly/kf-ml-experience)                                                    |                                                                                              |
-| Kubeflow Model Registry call    | [Google Doc](https://bit.ly/kf-model-registry-notes)                                               | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_ymLhMu0UMeaWPsLDPIjNnW) |
-| Kubeflow Notebooks WG           | [Google Doc](https://bit.ly/kf-notebooks-wg-notes)                                                 | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_wpsjmJYTo50xe2eYu1-HvP) |
-| Kubeflow Platform WG            | [Google Doc](https://bit.ly/kf-wg-manifests-notes)                                                 |                                                                                              |
-| Kubeflow Pipelines WG           | [Google Doc](http://bit.ly/kfp-meeting-notes)                                                      | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_zxNI1k5aF1cJreIymqAFBo) |
-| Kubeflow Release team call      | [Google Doc](https://bit.ly/kf-release-team-notes)                                                 |                                                                                              |
-| Kubeflow Spark Operator call    | [Google Doc](https://bit.ly/3VGzP4n)                                                               | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_xXuM6gALgBG8vDZHFCNxce) |
-| KServe call                     | [Google Doc](https://bit.ly/3NlKFb3)                                                               |                                                                                              |
-| Kubeflow Graduation Call        | [Google Doc](https://docs.google.com/document/d/1Wdxt1xedAj7qF_Rjmxy1R0NRdfv7UWs-r2PItewxHpE/edit) | [YouTube playlist](https://youtu.be/a3ZHpSZ6F1o?list=PLmzRWLV1CK_wXzEuDqJZQVMhZaJVHTWfM)     |
+| Meeting Name                        | Meeting Notes                                        | Recordings                                                                                   |
+| ----------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Kubeflow community call             | [Google Doc](https://bit.ly/kf-meeting-notes)        | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_ypvsQu10SGRmhf2S7mbYL5) |
+| Kubeflow Trainer and Katib call     | [Google Doc](https://bit.ly/2PWVCkV)                 | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_xAiAY-3Vw94lrUs4xeNZ3j) |
+| Kubeflow SDK and ML Experience call | [Google Doc](https://bit.ly/kf-ml-experience)        | [YouTube playlist](https://youtu.be/VkbVVk2OGUI?list=PLmzRWLV1CK_wSO2IMPnzChxESmaoXNfrY)     |
+| Kubeflow Hub call                   | [Google Doc](https://bit.ly/kf-model-registry-notes) | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_ymLhMu0UMeaWPsLDPIjNnW) |
+| Kubeflow Notebooks call             | [Google Doc](https://bit.ly/kf-notebooks-wg-notes)   | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_wpsjmJYTo50xe2eYu1-HvP) |
+| Kubeflow Pipelines call             | [Google Doc](http://bit.ly/kfp-meeting-notes)        | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_zxNI1k5aF1cJreIymqAFBo) |
+| Kubeflow Spark Operator call        | [Google Doc](https://bit.ly/3VGzP4n)                 | [YouTube playlist](https://www.youtube.com/playlist?list=PLmzRWLV1CK_xXuM6gALgBG8vDZHFCNxce) |
+| Kubeflow AI Reference Platform call | [Google Doc](https://bit.ly/kf-release-team-notes)   | [YouTube playlist](https://youtu.be/hSWhr6JyXe0?list=PLmzRWLV1CK_wdWP58XoaJ0kczgHTdsOph)     |
+| KServe call                         | [Google Doc](https://bit.ly/3NlKFb3)                 |                                                                                              |
 
 </div>
 </div>
+
+### Download Kubeflow Calendar iCall
+
+You can download [the iCall for the Kubeflow community calendar](https://webcal.prod.itx.linuxfoundation.org/lfx/a092M00001LkNgVQAV).
 
 ### Kubeflow Community Calendar
 
-This is an aggregated view of the Kubeflow community calendar and should be displayed in your
-device's timezone.
+This is an aggregated view of [the Kubeflow community calendar](https://zoom-lfx.platform.linuxfoundation.org/meetings/kubeflow)
+and should be displayed in your device's timezone. To be invited to the meetings, go to this calendar,
+and click on the event, then click “register”.
 
 <style>
 #calendar-container {
@@ -107,12 +100,7 @@ device's timezone.
 <div id="calendar-container"></div>
 <script type="text/javascript">
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const calender_src_list = [
-  // Kubeflow Community
-  "kubeflow.org_7l5vnbn8suj2se10sen81d9428%40group.calendar.google.com",
-];
-let calender_src = calender_src_list.map(src => `&src=${src}&color=%23A79B8E`).join('');
-const html = `<iframe src="https://calendar.google.com/calendar/embed?ctz=${timezone}&height=600&wkst=1&bgcolor=%23ffffff&showPrint=0&showDate=1&mode=AGENDA&showTitle=0${calender_src}" width="800" height="600" frameborder="0" scrolling="no"></iframe>`;
+const html = `<iframe src="https://zoom-lfx.platform.linuxfoundation.org/meetings/kubeflow?view=list" width="100%" height="600" frameborder="0" scrolling="no"></iframe>`;
 document.getElementById('calendar-container').innerHTML = html;
 </script>
 
@@ -173,7 +161,7 @@ The following table outlines which components are maintained by each Working Gro
           <a href="https://github.com/kubeflow/community/tree/master/wg-data">Data</a>
         </td>
         <td>
-          <a href="https://github.com/kubeflow/model-registry">Kubeflow Model Registry</a>
+          <a href="https://github.com/kubeflow/hub">Kubeflow Hub</a>
         </td>
       </tr>
       <tr>

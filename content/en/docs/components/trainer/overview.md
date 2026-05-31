@@ -12,16 +12,26 @@ For legacy Kubeflow Training Operator V1 documentation, check [these guides](/do
 
 ## What is Kubeflow Trainer
 
-Kubeflow Trainer is a Kubernetes-native project designed for
-large language models (LLMs) fine-tuning and enabling scalable, distributed training of
-machine learning (ML) models across various frameworks, including PyTorch, JAX, TensorFlow, and XGBoost.
+Kubeflow Trainer is a Kubernetes-native distributed AI platform for scalable large language model
+(LLM) fine-tuning and training of AI models across a wide range of frameworks, including
+PyTorch, MLX, HuggingFace, DeepSpeed, JAX, XGBoost, and more.
 
-You can integrate other ML libraries such as [HuggingFace](https://huggingface.co),
-[DeepSpeed](https://github.com/microsoft/DeepSpeed), or [Megatron-LM](https://github.com/NVIDIA/Megatron-LM)
-with Kubeflow Trainer to orchestrate their ML training on Kubernetes.
+Kubeflow Trainer brings MPI to Kubernetes, orchestrating multi-node, multi-GPU distributed
+jobs efficiently across high-performance computing (HPC) clusters. This enables high-throughput
+communication between processes, making it ideal for large-scale AI training that requires
+ultra-fast synchronization between GPUs nodes.
 
-Kubeflow Trainer allows you to effortlessly develop your LLMs with the Kubeflow Python SDK and
-build Kubernetes-native Training Runtimes with Kubernetes Custom Resources APIs.
+Kubeflow Trainer seamlessly integrates with the Cloud Native AI ecosystem, including
+[Kueue](https://kueue.sigs.k8s.io/docs/tasks/run/trainjobs/) for topology-aware scheduling and
+multi-cluster job dispatching, as well as [JobSet](https://github.com/kubernetes-sigs/jobset) and
+[LeaderWorkerSet](https://github.com/kubernetes-sigs/lws) for AI workload orchestration.
+
+Kubeflow Trainer provides a distributed data cache designed to stream large-scale data with zero-copy
+transfer directly to GPU nodes. This ensures memory-efficient training jobs while maximizing
+GPU utilization.
+
+With [the Kubeflow Python SDK](https://github.com/kubeflow/sdk), AI practitioners can effortlessly
+develop and fine-tune LLMs while leveraging the Kubeflow Trainer APIs: TrainJob and Runtimes.
 
 <img src="/docs/components/trainer/images/trainer-tech-stack.drawio.svg"
   alt="Kubeflow Trainer Tech Stack"
@@ -30,13 +40,17 @@ build Kubernetes-native Training Runtimes with Kubernetes Custom Resources APIs.
 
 ## Who is this for
 
-Kubeflow Trainer is designed for two primary user personas, each with specific resources and
-responsibilities:
+Checkout following KubeCon + CloudNativeCon talks for Kubeflow Trainer capabilities:
 
 <img src="/docs/components/trainer/images/user-personas.drawio.svg"
   alt="Kubeflow Trainer Personas"
   class="mt-3 mb-3 border rounded p-3 bg-white"
   style="width: 100%; max-width: 30em">
+
+Additional talks:
+
+- [From High Performance Computing To AI Workloads on Kubernetes: MPI Runtime in Kubeflow TrainJob](https://youtu.be/Fnb1a5Kaxgo)
+- [Streamline LLM Fine-tuning on Kubernetes With Kubeflow LLM Trainer](https://youtu.be/O7cNlaz3Hqs)
 
 ### User Personas
 
@@ -66,32 +80,39 @@ including model training and LLMs fine-tuning, as shown in the diagram below:
 
 ### Key Benefits
 
-- **Simple and Scalable for Distributed Training and LLMs Fine-Tuning**
+- 🚀 **Simple, Scalable, and Built for LLM Fine-Tuning**
 
-Effortlessly scale your model training from a single machine to large distributed Kubernetes
-clusters using Kubeflow Python APIs and supported Training Runtimes.
+Effortlessly scale from single-machine training to large, distributed Kubernetes clusters with
+Kubeflow's Python APIs and supported Training Runtimes. Perfect for modern AI workloads.
 
-- **Extensible and Portable**
+- 🔧 **Extensible and Portable**
 
-Deploy Kubeflow Trainer on any cloud platform with a Kubernetes cluster and integrate your own
-ML frameworks in any programming language.
+Run Kubeflow Trainer on any cloud or on-premises Kubernetes cluster. Easily integrate your own ML
+frameworks—regardless of language or runtime—through a flexible, extensible API layer.
 
-- **Blueprints for LLMs Fine-Tuning**
+- ⚡️ **Distributed AI Data Caching**
 
-Fine-tune the latest LLMs on Kubernetes with ready-to-use Kubeflow LLM blueprints.
+Powered by [Apache Arrow](https://arrow.apache.org/) and [Apache DataFusion](https://datafusion.apache.org/),
+Kubeflow Trainer streams tensors directly to GPU nodes via a distributed cache layer – enabling
+seamless access to large datasets, minimizing I/O overhead, and cutting GPU costs.
 
-- **Reduce GPU Cost**
+- 🧠 **LLM Fine-Tuning Blueprints**
 
-Kubeflow Trainer implements custom dataset and model initializers to reduce GPU cost by
-offloading I/O tasks to CPU workloads and to streamline assets initialization across distributed
-training nodes.
+Accelerate your generative AI use-cases with ready-to-use Kubeflow LLM blueprints designed for
+efficient fine-tuning and deployment of LLMs on Kubernetes.
 
-- **Seamless Kubernetes Integration**
+- 💰 **Optimized for GPU Efficiency**
 
-Optimize GPU utilization and gang-scheduling for ML workloads by leveraging Kubernetes projects like
+Reduce GPU costs through intelligent dataset streaming and model initialization. Kubeflow Trainer
+offloads data preprocessing and I/O to CPU workloads, ensuring GPUs stay focused on training.
+
+- ☸️ **Native Kubernetes Integrations**
+
+Achieve optimal GPU utilization and coordinated scheduling for large-scale AI workloads.
+Kubeflow Trainer seamlessly integrates with Kubernetes ecosystem projects like
 [Kueue](https://kueue.sigs.k8s.io/),
 [Coscheduling](https://github.com/kubernetes-sigs/scheduler-plugins/blob/master/pkg/coscheduling/README.md),
-[Volcano](https://volcano.sh/en/) or [YuniKorn](https://yunikorn.apache.org/docs/).
+[Volcano](https://volcano.sh/en/), or [YuniKorn](https://yunikorn.apache.org/docs/).
 
 ## Next steps
 

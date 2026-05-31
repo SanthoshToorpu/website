@@ -5,12 +5,13 @@ weight = 3
 
 {{% kfp-v2-keywords %}}
 
+> **Note**: As of [KFP 2.15](https://github.com/kubeflow/pipelines/releases/tag/2.15.0), the default object store deployment has been changed to SeaweedFS, replacing the previous deployment of MinIO. It is important to note that MinIO remains fully supported (as is any S3-compliant object store within KFP); only the default deployment configuration has been updated. Older MinIO manifests are still available [here](https://github.com/kubeflow/pipelines/blob/release-2.15/manifests/kustomize/env/platform-agnostic-minio/kustomization.yaml). These legacy manifests may be subject to removal in future releases.
 In Kubeflow Pipelines (KFP), there are two components that utilize Object store:
 
 * KFP API Server
 * KFP Launcher (aka KFP executor)
 
-The default object store that is shipped as part of the Kubeflow Platform is Minio. However, you can configure a different object store provider with your KFP deployment.
+The default object store that is shipped as part of the Kubeflow Platform is SeaweedFS. However, you can configure a different object store provider with your KFP deployment.
 
 The following diagram provides an simplified overview of how object storage is utilized and configured: 
 
@@ -39,7 +40,8 @@ For [AWS Static Credentials] and other S3 compliant object storage, this consist
 
 | Provider                                     | Supported |
 |----------------------------------------------|-----------|
-| Minio with Static Credentials                | Yes       |
+| SeaweedFS with Static Credentials            | Yes       |
+| SeaweedFS Gateway to AWS/GCP/Azure/Minio S3  | Yes       |
 | AWS S3 with Static Credentials               | Yes       |
 | AWS S3 with IRSA                             | Yes       |
 | S3-Compliant Storage with Static Credentials | Yes       |
@@ -112,7 +114,8 @@ Refer to the API Server configuration section [here](#api-server-supported-provi
 
 | Provider                                     | Supported |
 |----------------------------------------------|-----------|
-| Minio with Static Credentials                | Yes       |
+| SeaweedFS with Static Credentials            | Yes       |
+| SeaweedFS Gateway to AWS/GCP/Azure/Minio S3  | Yes       |
 | AWS S3 with Static Credentials               | Yes       |
 | AWS S3 with IRSA                             | Yes       |
 | S3-Compliant Storage with Static Credentials | Yes       |
@@ -143,11 +146,11 @@ The `defaultPipelineRoot` is a path within the Object store bucket where Artifac
 stored. Note that this field can also be configured via the KFP SDK, see [SDK PipelineRoot Docs]. It can also be configured via the 
 KFP UI when creating a Run.
 
-By default `defaultPipelineRoot` is `minio://mlpipeline/v2/artifacts` and artifacts are stored in the default Minio deployment.
+By default `defaultPipelineRoot` is `minio://mlpipeline/v2/artifacts` and artifacts are stored in the default SeaweedFS deployment.
 The first value in the path `mlpipeline` refers to the bucket name. 
 
 If you want artifacts to be stored in a different path in the bucket that is not `/v2/artifacts`, you can simply change the `defaultPipelineRoot`.
-For example to store artifacts in `/some/other/path` within the default Minio install, use the following KFP Launcher configmap: 
+For example to store artifacts in `/some/other/path` within the default SeaweedFS install, use the following KFP Launcher configmap: 
 
 ```yaml
 apiVersion: v1

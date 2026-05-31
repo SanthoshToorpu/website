@@ -44,7 +44,7 @@ corresponding [AI lifecycle stage](/docs/started/architecture/#kubeflow-projects
     <tbody>
       <tr>
         <td>
-         <a href="https://kserve.github.io/website/master/admin/serverless/serverless">
+         <a href="https://kserve.github.io/website/">
             KServe
           </a>
         </td>
@@ -74,7 +74,7 @@ corresponding [AI lifecycle stage](/docs/started/architecture/#kubeflow-projects
       </tr>
       <tr>
         <td>
-         <a href="/docs/components/model-registry/installation/#installing-model-registry">
+         <a href="/docs/components/hub/installation/#installing-model-registry">
             Kubeflow Model Registry
           </a>
         </td>
@@ -82,8 +82,8 @@ corresponding [AI lifecycle stage](/docs/started/architecture/#kubeflow-projects
           Model Registry
         </td>
         <td>
-          <a href="https://github.com/kubeflow/model-registry">
-            <code>kubeflow/model-registry</code>
+          <a href="https://github.com/kubeflow/hub">
+            <code>kubeflow/hub</code>
           </a>
         </td>
       </tr>
@@ -171,23 +171,6 @@ The following table lists distributions which are <em>maintained</em> by their r
     <tbody>
       <tr>
         <td>
-          Aranui Solutions
-            <br><small>deployKF</small>
-        </td>
-        <td>
-          {{< kf-version-notice >}}{{% deploykf/latest-version %}}{{< /kf-version-notice >}}
-          <sup><a href="https://www.deploykf.org/releases/tool-versions/#kubeflow-ecosystem">[version matrix]</a></sup>
-        </td>
-        <td>
-          Multiple
-          <sup><a href="https://www.deploykf.org/guides/getting-started/#kubernetes-cluster">[list]</a></sup>
-        </td>
-        <td>
-          <a href="https://www.deploykf.org/">Website</a>
-        </td>
-      </tr>
-      <tr>
-        <td>
           Canonical
             <br><small>Charmed Kubeflow</small>
         </td>
@@ -200,21 +183,6 @@ The following table lists distributions which are <em>maintained</em> by their r
         </td>
         <td>
           <a href="https://charmed-kubeflow.io/">Website</a>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          Google Cloud
-        </td>
-        <td>
-          {{< kf-version-notice >}}{{% gke/latest-version %}}{{< /kf-version-notice >}}
-          <sup><a href="https://googlecloudplatform.github.io/kubeflow-gke-docs/docs/changelog/">[release notes]</a></sup>
-        </td>
-        <td>
-          Google Kubernetes Engine (GKE)
-        </td>
-        <td>
-          <a href="https://googlecloudplatform.github.io/kubeflow-gke-docs">Website</a>
         </td>
       </tr>
       <tr>
@@ -293,9 +261,8 @@ try out the end-to-end Kubeflow AI reference platform capabilities.
 
 If you want a stable / conservative experience we recommend to use the [latest stable release](https://github.com/kubeflow/manifests/releases):
 
-- [**Kubeflow 1.10:**](/docs/kubeflow-platform/releases/kubeflow-1.10/)
-  - [`v1.10.1`](https://github.com/kubeflow/manifests/tree/v1.10.1#installation)
-  - [`v1.10.2`](https://github.com/kubeflow/manifests/tree/v1.10.2#installation)
+- [`v1.11 branch`](https://github.com/kubeflow/manifests/tree/v1.11-branch)
+- [`v1.11.0 release`](https://github.com/kubeflow/manifests/releases/tag/v1.11.0)
 
 You can also install the master branch of [`kubeflow/manifests`](https://github.com/kubeflow/manifests) by following the instructions [here](https://github.com/kubeflow/manifests?tab=readme-ov-file#installation) and provide us feedback.
 
