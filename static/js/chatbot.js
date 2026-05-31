@@ -177,6 +177,8 @@ function createChatbotElements() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Docs Bot Initialized (v1.0.1 - Parse Fix)');
+    
     // Create chatbot HTML structure dynamically and wait for completion
     const elementsCreated = await createChatbotElements();
     
@@ -218,6 +220,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
+    // Helper to generate UUIDs for KAgent
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     // State - TODO 1: Add chat stack state management ✅
     let isTyping = false;
     let currentMessageDiv = null;
@@ -225,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     let messagesHistory = []; // Current chat messages
     let chatsStack = []; // Stack of all chats: [{name: string, messages: array}, ...]
     let currentChatIndex = -1; // Index of current chat in stack, -1 for new unsaved chat
+    let currentContextId = generateUUID(); // KAgent session ID
     
     // TODO 2: Browser storage functions ✅
     function saveChatsToStorage() {
@@ -267,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const chatName = generateChatName(messagesHistory);
             const currentChat = {
                 name: chatName,
+                contextId: currentContextId,
                 messages: [...messagesHistory] // Copy array
             };
             
@@ -287,6 +299,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Reset current chat state
         currentChatIndex = -1;
         messagesHistory = [];
+        currentContextId = generateUUID();
         
         // Clear UI
         clearChatUI();
@@ -321,6 +334,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const chatName = generateChatName(messagesHistory);
             const currentChat = {
                 name: chatName,
+                contextId: currentContextId,
                 messages: [...messagesHistory]
             };
             
@@ -421,6 +435,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const selectedChat = chatsStack[chatIndex];
         currentChatIndex = chatIndex;
         messagesHistory = [...selectedChat.messages];
+        currentContextId = selectedChat.contextId || generateUUID();
         
         // Clear and rebuild UI
         clearChatUI();
@@ -466,8 +481,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // API Configuration
-    const API_BASE_URL = 'https://129.80.218.9.nip.io/api/agent/chat';
-    const AUTH_TOKEN = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IlRYVGctb2ZaV3dTVXNQd2JnbFZEcmxJWDZ0VlE5WEhuVkt0VWlDRHhsejQifQ.eyJhdWQiOlsiaXN0aW8taW5ncmVzc2dhdGV3YXkuaXN0aW8tc3lzdGVtLnN2Yy5jbHVzdGVyLmxvY2FsIl0sImV4cCI6MTc2MTI0NzE1MiwiaWF0IjoxNzU3NjQ3MTUyLCJpc3MiOiJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbCIsImp0aSI6IjZmYmQ3YWRlLTU0ZDQtNDE1MC05ZTU4LWFkZjc2MWNiMGE3MCIsImt1YmVybmV0ZXMuaW8iOnsibmFtZXNwYWNlIjoic2FudGhvc2giLCJzZXJ2aWNlYWNjb3VudCI6eyJuYW1lIjoiZGVmYXVsdCIsInVpZCI6IjRiOWE5ZDY0LTYzNjQtNGYzYi05MWE2LTU3OGQ1ZjE0MjY4ZSJ9fSwibmJmIjoxNzU3NjQ3MTUyLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6c2FudGhvc2g6ZGVmYXVsdCJ9.KEdQMl9thcI8owDhEx_9A9uNIKg9TbMnRryX18ppARSGr7QuOZTmo2iOUu_HGe3nTtjJDaQAUWjMvOgK0nMuOiFtXcasKBgmc1oF92bSroH3X222uMP8MlTSVRXJgmxQAfFDfTW2-DyQcHgK53biJcyjqJCeht2-K9iySWaAyyVmHzcCVBqCJMSTqa5bx1_sX-SmLIaY6K75-dGe3Q9L0fVCr3DvOj9UfgoO2n95IBRrr40balA5IJPlZMrW98Wft5bK_Z7aofbHC69VKK6TprFcWPNfuaSkiCv3xvvWXtMcP7iWLdE6LX5nWeIIGpcB4R1fwVQqg5kO05lGc5scQg';
+    const API_BASE_URL = 'https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent';
     
     // API connection status
     let isConnected = false;
@@ -484,17 +498,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             console.log('Sending message to API:', message);
             
+            const messageId = generateUUID();
+            const rpcId = generateUUID();
+            
             const payload = {
-                message: message,
-                stream: true,
-                messages: messagesHistory
+                jsonrpc: "2.0",
+                method: "message/stream",
+                params: {
+                    message: {
+                        kind: "message",
+                        messageId: messageId,
+                        role: "user",
+                        parts: [{"kind": "text", "text": message}],
+                        contextId: currentContextId,
+                        metadata: {"displaySource": "user"}
+                    },
+                    metadata: {}
+                },
+                id: rpcId
             };
             
             const response = await fetch(API_BASE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`
+                    'Accept': 'text/event-stream'
                 },
                 body: JSON.stringify(payload)
             });
@@ -526,33 +554,70 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (line.trim() === '') continue;
                     
                     try {
-                        // Handle Server-Sent Events format
+                        let dataStr = line;
                         if (line.startsWith('data: ')) {
-                            const data = line.substring(6);
-                            if (data === '[DONE]') {
-                                // End of stream
-                                if (currentMessageContent.trim()) {
-                                    messagesHistory.push({
-                                        role: 'assistant',
-                                        content: currentMessageContent.trim()
-                                    });
-                                }
-                                currentMessageDiv = null;
-                                currentMessageContent = '';
-                                autoSaveCurrentChat();
-                                removeTypingIndicator();
-                                return;
+                            dataStr = line.substring(6);
+                        }
+                        
+                        // KAgent doesn't always send [DONE], but we handle it just in case
+                        if (dataStr === '[DONE]') {
+                            if (currentMessageContent.trim()) {
+                                messagesHistory.push({
+                                    role: 'assistant',
+                                    content: currentMessageContent.trim()
+                                });
                             }
+                            currentMessageDiv = null;
+                            currentMessageContent = '';
+                            autoSaveCurrentChat();
+                            removeTypingIndicator();
+                            return;
+                        }
+                        
+                        const parsed = JSON.parse(dataStr);
+                        
+                        // Handle KAgent JSON-RPC Stream chunks
+                        const result = parsed.result;
+                        if (!result) continue;
+                        
+                        // Extract message whether it's direct in result or inside result.status
+                        const messageObj = result.message || (result.status && result.status.message);
+                        
+                        if (messageObj && messageObj.parts) {
+                            // Skip user messages echoed back by KAgent
+                            const isUserMessage = messageObj.role === 'user';
+                            // Skip the final full message if we already streamed partial chunks
+                            const isDuplicateFinal = messageObj.metadata && messageObj.metadata.kagent_adk_partial === false && currentMessageContent.length > 0;
                             
-                            const response = JSON.parse(data);
-                            handleAPIResponse(response);
-                        } else {
-                            // Try to parse as JSON directly
-                            const response = JSON.parse(line);
-                            handleAPIResponse(response);
+                            if (!isUserMessage && !isDuplicateFinal) {
+                                for (const part of messageObj.parts) {
+                                    if (part.kind === 'text' && part.text) {
+                                        handleAPIResponse({ type: 'content', content: part.text });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Detect KAgent end of stream signal
+                        const isFinal = result.final === true;
+                        const turnComplete = messageObj && messageObj.metadata && messageObj.metadata.turn_complete;
+                        
+                        if (isFinal || turnComplete) {
+                            if (currentMessageContent.trim()) {
+                                messagesHistory.push({
+                                    role: 'assistant',
+                                    content: currentMessageContent.trim()
+                                });
+                            }
+                            currentMessageDiv = null;
+                            currentMessageContent = '';
+                            autoSaveCurrentChat();
+                            removeTypingIndicator();
+                            return;
                         }
                     } catch (parseError) {
-                        console.warn('Failed to parse response line:', line, parseError);
+                        // Some chunks might just be keep-alives or partial json, ignore gracefully
+                        console.debug('Failed to parse line:', line);
                     }
                 }
             }
