@@ -875,11 +875,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             agentName = 'kubeflow-docs-agent-think';
         }
         const base = resolveAgentApiUrl();
+        const configuredAgent = base.match(/kubeflow-(?:docs|debug)-agent(?:-think)?\/?$/);
 
-        if (base.includes('kubeflow-docs-agent')) {
-            return base.replace('kubeflow-docs-agent', agentName);
-        } else if (base.includes('kubeflow-debug-agent')) {
-            return base.replace('kubeflow-debug-agent', agentName);
+        if (configuredAgent) {
+            return base.slice(0, configuredAgent.index) + agentName;
         } else {
             if (base.endsWith('/')) {
                 return base + agentName;
@@ -901,7 +900,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     let sessionToken = null;
     let sessionExpiresAt = 0;
     let sessionFetch = null;
-    let sessionEndpointAvailable = true; // Disabled after first failure to avoid redundant errors
+    let sessionEndpointAvailable = true; // Disabled only when the gateway has no session endpoint (404/405)
+    const SESSION_RETRY_DELAYS_MS = [1000, 3000];
 
     function getSessionUrl() {
         return new URL(SESSION_PATH, getAPIUrl()).toString();
@@ -951,23 +951,32 @@ document.addEventListener('DOMContentLoaded', async function () {
         return Boolean(sessionToken) && now < sessionExpiresAt - SESSION_REFRESH_MARGIN_MS;
     }
 
+    // Rate limits (429), server errors and network failures are retried with
+    // backoff and never disable sessions for the rest of the page.
     async function fetchSessionToken() {
-        if (!sessionEndpointAvailable) return null;
-        try {
-            const requestedAt = Date.now();
-            const response = await fetch(getSessionUrl(), { method: 'POST' });
-            if (!response.ok) {
-                sessionEndpointAvailable = false;
-                return null;
+        for (let attempt = 0; attempt <= SESSION_RETRY_DELAYS_MS.length; attempt++) {
+            if (!sessionEndpointAvailable) return null;
+            if (attempt > 0) {
+                await new Promise((resolve) => setTimeout(resolve, SESSION_RETRY_DELAYS_MS[attempt - 1]));
             }
-            const data = await response.json();
-            sessionToken = data.access_token;
-            sessionExpiresAt = computeSessionExpiry(data, requestedAt);
-            return sessionToken;
-        } catch (e) {
-            sessionEndpointAvailable = false; // Mark unavailable for rest of session
-            return null;
+            try {
+                const requestedAt = Date.now();
+                const response = await fetch(getSessionUrl(), { method: 'POST' });
+                if (response.status === 404 || response.status === 405) {
+                    sessionEndpointAvailable = false;
+                    return null;
+                }
+                if (!response.ok) {
+                    if (response.status === 429 || response.status >= 500) continue;
+                    return null;
+                }
+                const data = await response.json();
+                sessionToken = data.access_token;
+                sessionExpiresAt = computeSessionExpiry(data, requestedAt);
+                return sessionToken;
+            } catch (e) {}
         }
+        return null;
     }
 
     // Returns a valid token, minting one if absent, near expiry, or already
@@ -1007,7 +1016,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         } catch (error) {}
 
         let response = await send(token);
-        if (token && (response.status === 401 || response.status === 403)) {
+        if (response.status === 401 || response.status === 403) {
             response = await send(await getSessionToken({ forceRefresh: true }));
         }
         return response;
