@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (scriptEl?.dataset?.agentBase) {
             return scriptEl.dataset.agentBase.replace(/\/$/, '') + KAGENT_A2A_PATH;
         }
-        return 'https://agent.example.com/a2a/docs-agent/kubeflow-docs-agent';
+        return 'https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent';
     }
 
     function getAPIUrl() {
