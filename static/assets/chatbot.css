@@ -1189,40 +1189,53 @@
     background: var(--flo-surface);
 }
 
+.composer-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 2px;
+}
+
 .composer-think-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     flex-shrink: 0;
-    margin: 0 0 0 4px;
-    padding: 6px 10px;
-    border: 1px solid transparent;
+    margin: 0;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid var(--flo-outline-variant);
     border-radius: 999px;
-    background: transparent;
-    color: var(--flo-on-surface-variant);
+    background: var(--flo-surface-container-lowest, #fff);
+    color: var(--flo-on-surface);
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     line-height: 1;
     cursor: pointer;
+    box-shadow: none;
     transition: background 0.15s var(--flo-ease), border-color 0.15s var(--flo-ease), color 0.15s var(--flo-ease);
 }
 
 .composer-think-toggle svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
+    color: var(--flo-on-surface-variant);
 }
 
 .composer-think-toggle:hover {
     background: var(--flo-state-hover);
-    color: var(--flo-on-surface);
+    border-color: var(--flo-outline);
 }
 
 .composer-think-toggle.active {
     color: var(--flo-on-primary-container);
     background: var(--flo-primary-container);
-    border-color: color-mix(in srgb, var(--flo-primary) 30%, transparent);
+    border-color: color-mix(in srgb, var(--flo-primary) 40%, var(--flo-outline-variant));
+}
+
+.composer-think-toggle.active svg {
+    color: var(--flo-primary);
 }
 
 .composer-think-toggle:focus-visible {

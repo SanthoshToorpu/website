@@ -264,8 +264,9 @@ function createChatbotElements() {
         const chatInputContainer = document.createElement('div');
         chatInputContainer.className = 'chat-input-container';
 
-        const inputWrapper = document.createElement('div');
-        inputWrapper.className = 'input-wrapper';
+        // ChatGPT-style: tool chips above the composer, not inside the input.
+        const composerTools = document.createElement('div');
+        composerTools.className = 'composer-tools';
 
         const thinkToggle = document.createElement('button');
         thinkToggle.id = 'think-toggle';
@@ -278,6 +279,10 @@ function createChatbotElements() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
             <span class="composer-think-label">Think</span>
         `;
+        composerTools.appendChild(thinkToggle);
+
+        const inputWrapper = document.createElement('div');
+        inputWrapper.className = 'input-wrapper';
 
         const userInput = document.createElement('textarea');
         userInput.id = 'user-input';
@@ -290,7 +295,6 @@ function createChatbotElements() {
         sendButton.className = 'send-button';
         sendButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
 
-        inputWrapper.appendChild(thinkToggle);
         inputWrapper.appendChild(userInput);
         inputWrapper.appendChild(sendButton);
 
@@ -298,6 +302,7 @@ function createChatbotElements() {
         disclaimer.className = 'disclaimer-text';
         disclaimer.innerHTML = 'AI answers can be wrong, so check the sources. Chats and feedback are recorded to improve Flo; please don\'t share personal information.';
 
+        chatInputContainer.appendChild(composerTools);
         chatInputContainer.appendChild(inputWrapper);
         chatInputContainer.appendChild(disclaimer);
 
