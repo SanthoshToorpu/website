@@ -58,9 +58,27 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 
-<!-- Prism JS -->
+<!-- Markdown (GFM) + sanitize (local); Prism highlights fenced code only -->
+<script src="/assets/marked.min.js"></script>
+<script src="/assets/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 <link rel="stylesheet" href="/assets/chatbot.css">
+<script>
+  // Local Hugo (:1313) cannot call agent.santhoshtoorpu.com (CORS allowlist).
+  // Default Docs agent; Flo Research persona selects flo-orch-poc in chatbot.js.
+  (function () {
+    var h = location.hostname;
+    if (h === "127.0.0.1" || h === "localhost") {
+      window.FLO_UI = Object.assign({}, window.FLO_UI || {}, {
+        researchTrail: true,
+        researchTrailDefaultOpen: false,
+        useOrchAgent: false
+      });
+      window.KUBEFLOW_DOCS_AGENT_URL =
+        "http://127.0.0.1:18090/a2a/docs-agent/kubeflow-docs-agent";
+    }
+  })();
+</script>
 <script src="/assets/chatbot.js"></script>
