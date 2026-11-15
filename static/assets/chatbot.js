@@ -1,3 +1,97 @@
+// Flo UI flags (killer plan Task 1). Override before chatbot loads if needed.
+window.FLO_UI = Object.assign(
+    {
+        researchTrail: true,
+        researchTrailDefaultOpen: false,
+        // Orch is selected via Research persona — not a global override.
+        useOrchAgent: false
+    },
+    window.FLO_UI || {}
+);
+
+// Orch Agent-as-tool names look like docs_agent__NS__flo_docs_worker (underscores).
+function floScoutKind(toolName) {
+    const n = String(toolName || '');
+    if (n === 'search_kubeflow_docs' || /flo[_-]?docs[_-]?worker|docs[_-]?worker|docs[_.-]?scout/i.test(n)) {
+        return 'docs';
+    }
+    if (n === 'search_github_issues' || /flo[_-]?issues[_-]?worker|issues[_-]?worker|issues[_.-]?scout/i.test(n)) {
+        return 'issues';
+    }
+    if (n === 'search_kubeflow_code' || /flo[_-]?code[_-]?worker|code[_-]?worker|code[_.-]?scout/i.test(n)) {
+        return 'code';
+    }
+    if (/web_search|web_fetch|flo[_-]?web|web[_-]?worker|web[_.-]?scout/i.test(n)) return 'web';
+    if (/prioritiz/i.test(n)) return 'prioritizer';
+    if (/docs[_-]?guard|guard.*docs/i.test(n)) return 'docs_guard';
+    if (/web[_-]?guard|guard.*web/i.test(n)) return 'web_guard';
+    return n ? 'other' : '';
+}
+
+function floScoutForTool(toolName) {
+    const kind = floScoutKind(toolName);
+    return ({
+        docs: 'Docs',
+        issues: 'Issues',
+        code: 'Code',
+        web: 'Web',
+        prioritizer: 'Prioritizer',
+        docs_guard: 'Docs guard',
+        web_guard: 'Web guard',
+        other: 'Flo'
+    })[kind] || '';
+}
+
+function floStatusForTool(toolName) {
+    const kind = floScoutKind(toolName);
+    if (kind === 'issues') return 'Searched GitHub issues';
+    if (kind === 'code') return 'Searched code & manifests';
+    if (kind === 'docs') return 'Searched documentation';
+    if (kind === 'web') return 'Checked allowlisted web';
+    if (kind === 'prioritizer') return 'Planned which sources to use';
+    if (kind === 'docs_guard') return 'Checked claims against indexed sources';
+    if (kind === 'web_guard') return 'Checked web allowlist / scope';
+    return 'Consulted Kubeflow resources';
+}
+
+function floCorpusForTool(toolName) {
+    const kind = floScoutKind(toolName);
+    if (kind === 'docs' || kind === 'issues' || kind === 'code' || kind === 'web') return kind;
+    return 'other';
+}
+
+function floCorpusForUrl(url) {
+    const u = String(url || '').toLowerCase();
+    if (!u) return 'other';
+    if (/github\.com\/[^/]+\/[^/]+\/(issues|pull)\//.test(u)) return 'issues';
+    if (/raw\.githubusercontent\.com\//.test(u) || /github\.com\/[^/]+\/[^/]+\/(blob|tree)\//.test(u)) return 'code';
+    if (/kubeflow\.org/.test(u) && !/blog\.kubeflow\.org/.test(u)) return 'docs';
+    if (/artifacthub\.io|blog\.kubeflow\.org|kserve\.(org|github\.io)|github\.com\/kserve\/|github\.com\/kubeflow(-incubator)?\//.test(u)) {
+        return 'web';
+    }
+    return 'other';
+}
+
+function floCorpusLabel(corpus) {
+    return ({ docs: 'Docs', issues: 'Issues', code: 'Code', web: 'Web', other: 'Source' })[corpus] || 'Source';
+}
+
+function floIsAllowlistedWebUrl(url) {
+    return /artifacthub\.io|blog\.kubeflow\.org|trainer\.kubeflow\.org|pipelines\.kubeflow\.org|kserve\.(org|github\.io)|github\.com\/kserve\/|github\.com\/kubeflow(-incubator)?\//i.test(String(url || ''));
+}
+
+function floRunningStatusForTool(toolName) {
+    const kind = floScoutKind(toolName);
+    if (kind === 'issues') return 'Searching GitHub issues…';
+    if (kind === 'code') return 'Searching code & manifests…';
+    if (kind === 'docs') return 'Searching documentation…';
+    if (kind === 'web') return 'Checking allowlisted web…';
+    if (kind === 'prioritizer') return 'Planning research…';
+    if (kind === 'docs_guard') return 'Grounding answer in docs…';
+    if (kind === 'web_guard') return 'Checking web scope…';
+    return 'Consulting Kubeflow resources…';
+}
+
 // Function to create chatbot HTML elements dynamically
 function createChatbotElements() {
     try {
@@ -50,6 +144,15 @@ function createChatbotElements() {
         optionsBtn.title = 'Options';
         optionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 12c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
 
+        // Always-visible Think control (sidebar pill only shows when expanded)
+        const headerThinkBtn = document.createElement('button');
+        headerThinkBtn.id = 'header-think-btn';
+        headerThinkBtn.className = 'header-icon-btn header-think-btn';
+        headerThinkBtn.type = 'button';
+        headerThinkBtn.title = 'Think deeper (off)';
+        headerThinkBtn.setAttribute('aria-pressed', 'false');
+        headerThinkBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>';
+
         const minBtn = document.createElement('button');
         minBtn.id = 'header-min-btn';
         minBtn.className = 'header-icon-btn';
@@ -69,6 +172,7 @@ function createChatbotElements() {
         closeBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>';
 
         headerActions.appendChild(optionsBtn);
+        headerActions.appendChild(headerThinkBtn);
         headerActions.appendChild(expandBtn);
         headerActions.appendChild(closeBtn);
 
@@ -170,6 +274,22 @@ function createChatbotElements() {
         const chatInputContainer = document.createElement('div');
         chatInputContainer.className = 'chat-input-container';
 
+        const composerTools = document.createElement('div');
+        composerTools.className = 'composer-tools';
+
+        const thinkToggle = document.createElement('button');
+        thinkToggle.id = 'think-toggle';
+        thinkToggle.type = 'button';
+        thinkToggle.className = 'composer-think-toggle';
+        thinkToggle.setAttribute('role', 'switch');
+        thinkToggle.setAttribute('aria-checked', 'false');
+        thinkToggle.title = 'Think deeper (off)';
+        thinkToggle.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+            <span class="composer-think-label">Think</span>
+        `;
+        composerTools.appendChild(thinkToggle);
+
         const inputWrapper = document.createElement('div');
         inputWrapper.className = 'input-wrapper';
 
@@ -191,6 +311,7 @@ function createChatbotElements() {
         disclaimer.className = 'disclaimer-text';
         disclaimer.innerHTML = 'AI answers can be wrong, so check the sources. Chats and feedback are recorded to improve Flo; please don\'t share personal information.';
 
+        chatInputContainer.appendChild(composerTools);
         chatInputContainer.appendChild(inputWrapper);
         chatInputContainer.appendChild(disclaimer);
 
@@ -203,7 +324,12 @@ function createChatbotElements() {
         chatbotBody.className = 'chatbot-body';
 
         // Resolve active persona FIRST before any element creation references it
-        const activePersona = 'docs';
+        let storedPersona = 'docs';
+        try {
+            const sp = localStorage.getItem('chatbot_current_persona');
+            if (sp === 'docs' || sp === 'debug' || sp === 'research') storedPersona = sp;
+        } catch (e) { /* ignore */ }
+        const activePersona = storedPersona;
 
         // Create LHS Persona panel
         const personaSidebar = document.createElement('div');
@@ -233,6 +359,8 @@ function createChatbotElements() {
         mascotLabel.className = 'mascot-persona-label';
         mascotLabel.innerHTML = activePersona === 'debug'
             ? `<span class="mascot-badge debug-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Flo Debugger</span>`
+            : activePersona === 'research'
+            ? `<span class="mascot-badge research-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Flo Research</span>`
             : `<span class="mascot-badge docs-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Flo AI Companion</span>`;
 
         mascotContent.appendChild(mascotVideo);
@@ -288,40 +416,29 @@ function createChatbotElements() {
         `;
         selectorContent.appendChild(personaOptionDebug);
 
+        // Option 3: Flo Research — orch + scouts + web
+        const personaOptionResearch = document.createElement('div');
+        personaOptionResearch.id = 'persona-research';
+        personaOptionResearch.className = `persona-pill${activePersona === 'research' ? ' active' : ''}`;
+        personaOptionResearch.innerHTML = `
+            <div class="persona-pill-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div class="persona-pill-text">
+                <span class="persona-pill-name">Flo Research</span>
+                <span class="persona-pill-sub">Scouts · Web · Plan</span>
+            </div>
+            <div class="persona-pill-check${activePersona === 'research' ? ' visible' : ''}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+        `;
+        selectorContent.appendChild(personaOptionResearch);
+
         selectorCard.appendChild(selectorHeader);
         selectorCard.appendChild(selectorContent);
         personaSidebar.appendChild(selectorCard);
 
-        // 3. Thinking toggle (docs persona only): routes to the thinking agent
-        const thinkCard = document.createElement('div');
-        thinkCard.className = 'persona-card selector-card';
-        thinkCard.innerHTML = '<div class="persona-card-header"><h4>THINKING</h4></div>';
-
-        const thinkContent = document.createElement('div');
-        thinkContent.className = 'persona-card-content selector-content';
-
-        const thinkToggle = document.createElement('div');
-        thinkToggle.id = 'think-toggle';
-        thinkToggle.className = 'persona-pill';
-        thinkToggle.setAttribute('role', 'switch');
-        thinkToggle.setAttribute('aria-checked', 'false');
-        thinkToggle.tabIndex = 0;
-        thinkToggle.innerHTML = `
-            <div class="persona-pill-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
-            </div>
-            <div class="persona-pill-text">
-                <span class="persona-pill-name">Think deeper</span>
-                <span class="persona-pill-sub">More careful · ~2x slower</span>
-            </div>
-            <div class="persona-pill-check">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-        `;
-        thinkContent.appendChild(thinkToggle);
-        thinkCard.appendChild(thinkContent);
-        personaSidebar.appendChild(thinkCard);
-
+        // Think lives on the chat composer + header (not a persona-sidebar card).
 
         // Assemble chatbot body
         chatbotBody.appendChild(personaSidebar);
@@ -387,9 +504,15 @@ function citationUrl(citation) {
 function sanitizeAnswerText(text) {
     if (!text) return '';
     let cleaned = text;
+    // Drop markdown links / bare URLs (citations live in Sources).
     cleaned = cleaned.replace(new RegExp(CITATION_MARKDOWN_LINK_RE.source, 'gi'), '$1');
+    cleaned = cleaned.replace(/\[([^\]]*)\]\(\s*\/[^\s)]*\s*\)/g, '$1'); // relative site links
+    cleaned = cleaned.replace(/\*\*\s*https?:\/\/[^\s*]+\s*\*\*/gi, '');
     cleaned = cleaned.replace(new RegExp(CITATION_BARE_URL_RE.source, 'gi'), '');
     cleaned = cleaned.replace(/\[\s*\]\(\s*\)/g, '');
+    // Leftover empty bold from "**https://…**" or "**\n**" after URL strip
+    cleaned = cleaned.replace(/\*\*\s*\*\*/g, '');
+    cleaned = cleaned.replace(/^[ \t]*\*\*[ \t]*$/gm, '');
     cleaned = cleaned.replace(/[ \t]+\n/g, '\n');
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
     return cleaned.trim();
@@ -420,60 +543,109 @@ function escapeMarkdownHtml(text) {
     });
 }
 
-// Protect fences first, then strip prose URLs. Links belong in Sources, not
-// the bubble — but kubectl/YAML inside ``` must keep their https:// lines.
+function floMarkedParse(src) {
+    const api = window.marked;
+    if (!api) return null;
+    if (!window.__floMarkedReady && typeof api.setOptions === 'function') {
+        api.setOptions({
+            gfm: true,
+            breaks: true,
+            pedantic: false,
+            headerIds: false,
+            mangle: false
+        });
+        window.__floMarkedReady = true;
+    }
+    if (typeof api.parse === 'function') return api.parse(src);
+    if (typeof api.marked === 'function') return api.marked(src);
+    if (typeof api === 'function') return api(src);
+    return null;
+}
+
+function floSanitizeHtml(html) {
+    if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+        return window.DOMPurify.sanitize(html, {
+            USE_PROFILES: { html: true }
+        });
+    }
+    return html;
+}
+
+// Prefer marked (GFM tables/headers/lists) + DOMPurify; Prism still highlights fences.
+// Protect code before URL strip so kubectl/YAML https:// lines survive.
 function formatChatMarkdown(text, isStreaming = false) {
     if (!text) return '';
 
-    let formatted = text;
-    const codeBlockPlaceholders = [];
-    const inlineCodePlaceholders = [];
-
-    function preserveCodeBlock(language, code, trimCode) {
-        const placeholder = `__CODE_BLOCK_${codeBlockPlaceholders.length}__`;
-        const safeLanguage = language || 'text';
-        const codeText = trimCode ? code.trim() : code;
-        codeBlockPlaceholders.push(
-            `<pre><code class="language-${safeLanguage}">${escapeMarkdownHtml(codeText)}</code></pre>`
-        );
-        return placeholder;
+    let src = String(text);
+    if (isStreaming) {
+        const ticks = src.match(/```/g);
+        if (ticks && ticks.length % 2 === 1) src += '\n```';
     }
 
-    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, function (match, language, code) {
-        return preserveCodeBlock(language, code, !isStreaming);
+    const codeBlocks = [];
+    src = src.replace(/```[\s\S]*?```/g, function (block) {
+        const key = `%%FLO_CODE_${codeBlocks.length}%%`;
+        codeBlocks.push(block);
+        return `\n${key}\n`;
+    });
+    const inlines = [];
+    src = src.replace(/`[^`\n]+`/g, function (inline) {
+        const key = `%%FLO_INLINE_${inlines.length}%%`;
+        inlines.push(inline);
+        return key;
     });
 
-    if (isStreaming) {
-        const incompleteCodeRegex = /```(\w+)?\n([\s\S]*)$/;
-        if (incompleteCodeRegex.test(formatted) && !formatted.endsWith('```')) {
-            formatted = formatted.replace(incompleteCodeRegex, function (match, language, code) {
-                return preserveCodeBlock(language, code, false);
-            });
-        }
-    }
+    src = sanitizeAnswerText(src);
+    inlines.forEach(function (inline, index) {
+        src = src.replace(`%%FLO_INLINE_${index}%%`, function () { return inline; });
+    });
+    codeBlocks.forEach(function (block, index) {
+        src = src.replace(`%%FLO_CODE_${index}%%`, function () { return block; });
+    });
 
+    const parsed = floMarkedParse(src);
+    if (parsed != null) return floSanitizeHtml(parsed);
+
+    // Fallback if marked isn't on the page yet (headers / lists / bold / code)
+    let formatted = src;
+    const codeBlockPlaceholders = [];
+    const inlineCodePlaceholders = [];
+    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, function (match, language, code) {
+        const placeholder = `__CODE_BLOCK_${codeBlockPlaceholders.length}__`;
+        codeBlockPlaceholders.push(
+            `<pre><code class="language-${language || 'text'}">${escapeMarkdownHtml(code.trim())}</code></pre>`
+        );
+        return placeholder;
+    });
     formatted = formatted.replace(/`([^`\n]+)`/g, function (match, code) {
         const placeholder = `__INLINE_CODE_${inlineCodePlaceholders.length}__`;
         inlineCodePlaceholders.push(`<code>${escapeMarkdownHtml(code)}</code>`);
         return placeholder;
     });
-
-    formatted = sanitizeAnswerText(formatted);
     formatted = escapeMarkdownHtml(formatted);
-    formatted = formatted.replace(/\n/g, '<br>');
+    formatted = formatted.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    formatted = formatted.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    formatted = formatted.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    formatted = formatted.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    formatted = formatted.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    formatted = formatted.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+    formatted = formatted.replace(/(?:^|\n)((?:[\t ]*[-*+]\s+.+\n?)+)/g, function (match, block) {
+        const items = String(block).trim().split(/\n/).filter(Boolean).map(function (line) {
+            return '<li>' + line.replace(/^[\t ]*[-*+]\s+/, '') + '</li>';
+        }).join('');
+        return '\n<ul>' + items + '</ul>\n';
+    });
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
+    formatted = formatted.replace(/\n/g, '<br>');
+    formatted = formatted.replace(/<\/h([1-6])><br>/g, '</h$1>');
+    formatted = formatted.replace(/<\/ul><br>/g, '</ul>');
+    formatted = formatted.replace(/<br><ul>/g, '<ul>');
     inlineCodePlaceholders.forEach(function (inlineCode, index) {
-        formatted = formatted.replace(`__INLINE_CODE_${index}__`, function () {
-            return inlineCode;
-        });
+        formatted = formatted.replace(`__INLINE_CODE_${index}__`, function () { return inlineCode; });
     });
     codeBlockPlaceholders.forEach(function (codeBlock, index) {
-        formatted = formatted.replace(`__CODE_BLOCK_${index}__`, function () {
-            return codeBlock;
-        });
+        formatted = formatted.replace(`__CODE_BLOCK_${index}__`, function () { return codeBlock; });
     });
-
     return formatted;
 }
 
@@ -576,7 +748,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     const optionsDropdown = document.getElementById('options-dropdown');
     const personaOptionDocs = document.getElementById('persona-docs');
     const personaOptionDebug = document.getElementById('persona-debug');
+    const personaOptionResearch = document.getElementById('persona-research');
     const thinkToggle = document.getElementById('think-toggle');
+    const headerThinkBtn = document.getElementById('header-think-btn');
 
     // Validate all required elements exist
     if (!chatbotContainer || !chatbotBackdrop || !chatMessages || !userInput || !sendButton || !toggleButton || !chatbotToggle || !sidebarStrip || !sidebarNewChat || !sidebarExpand || !chatSidebar || !chatList) {
@@ -607,6 +781,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let currentMessageDiv = null;
     let currentMessageContent = '';
     let pendingCitations = []; // Citations collected for the current response
+    let pendingResearchSteps = []; // Flo's research trail (collapsed UI)
     let currentAbortController = null; // For cancelling in-flight fetch streams
     let currentReader = null; // Active ReadableStream reader
     let currentTaskId = null; // Active Kagent task ID
@@ -614,8 +789,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     let chatsStack = []; // Stack of all chats: [{name: string, messages: array}, ...]
     let currentChatIndex = -1; // Index of current chat in stack, -1 for new unsaved chat
     let currentContextId = generateUUID(); // KAgent session ID
-    let currentPersona = 'docs';
-    let thinkingEnabled = false; // Docs persona only; selects the thinking agent
+    let currentPersona = (() => {
+        try {
+            const sp = localStorage.getItem('chatbot_current_persona');
+            if (sp === 'docs' || sp === 'debug' || sp === 'research') return sp;
+        } catch (e) { /* ignore */ }
+        return 'docs';
+    })();
+    let thinkingEnabled = false; // Flag on all personas; Docs swaps to -think agent
 
     // TODO 2: Browser storage functions ✅
     function saveChatsToStorage() {
@@ -702,7 +883,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     function addWelcomeMessage() {
         const docsWelcomeMsg = "Hello! I'm Flo AI Companion, your friendly Kubeflow documentation assistant. How can I help you today?";
         const debugWelcomeMsg = "Hello! I'm Flo Debugger. Show me your error logs, Python pipelines, or YAML configurations, and I will help you debug them.";
-        const welcomeMsg = currentPersona === 'debug' ? debugWelcomeMsg : docsWelcomeMsg;
+        const researchWelcomeMsg = "Hello! I'm Flo Research. I'll use scouts and allowlisted web when needed, then answer with sources.";
+        const welcomeMsg = currentPersona === 'debug'
+            ? debugWelcomeMsg
+            : currentPersona === 'research'
+            ? researchWelcomeMsg
+            : docsWelcomeMsg;
         const welcomeDiv = addMessage(welcomeMsg, 'bot');
         messagesHistory.push({
             role: 'assistant',
@@ -721,7 +907,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         debug: [
             'My pipeline pod is stuck in Pending',
             'ImagePullBackOff on a Notebook server',
-            'Explain this Katib trial error'
+            'Katib trial fails with admission webhook denied'
+        ],
+        research: [
+            'Is Katib admission webhook denial a known GitHub issue after upgrade?',
+            'Find Notebook PVC size / storageClass defaults in the repo YAML',
+            'Search the web for the Kubeflow Helm chart on Artifact Hub'
         ]
     };
     const SUGGESTION_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>';
@@ -865,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (msg.role === 'user') {
                 addMessage(msg.content, 'user');
             } else if (msg.role === 'assistant') {
-                addMessage(msg.content, 'bot', msg.citations || []);
+                addMessage(msg.content, 'bot', msg.citations || [], msg.researchSteps || []);
                 attachFeedback(chatMessages && chatMessages.lastElementChild, msg.turn, msg);
             }
         });
@@ -920,18 +1111,20 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (scriptEl?.dataset?.agentBase) {
             return scriptEl.dataset.agentBase.replace(/\/$/, '') + KAGENT_A2A_PATH;
         }
-        return 'https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent';
+        return 'https://agent.example.com/a2a/docs-agent/kubeflow-docs-agent';
     }
 
     function getAPIUrl() {
         let agentName = 'kubeflow-docs-agent';
-        if (currentPersona === 'debug') {
+        if (currentPersona === 'research') {
+            agentName = 'flo-orch-poc';
+        } else if (currentPersona === 'debug') {
             agentName = 'kubeflow-debug-agent';
         } else if (thinkingEnabled) {
             agentName = 'kubeflow-docs-agent-think';
         }
         const base = resolveAgentApiUrl();
-        const configuredAgent = base.match(/kubeflow-(?:docs|debug)-agent(?:-think)?\/?$/);
+        const configuredAgent = base.match(/(?:kubeflow-(?:docs|debug)-agent(?:-think)?|flo-orch-poc)\/?$/);
 
         if (configuredAgent) {
             return base.slice(0, configuredAgent.index) + agentName;
@@ -1178,8 +1371,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             sendButton.classList.add('stop-mode');
             sendButton.title = 'Stop generation';
             sendButton.innerHTML = `
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="7" y="7" width="10" height="10" rx="1.5" />
                 </svg>
             `;
         } else {
@@ -1204,6 +1397,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         currentTaskId = null;
+        // Finalize the live trail before the typing indicator / pending steps are cleared.
+        finalizeLiveResearchTrail();
         removeTypingIndicator();
         setStopButtonState(false);
         isTyping = false;
@@ -1228,6 +1423,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (pendingCitations.length > 0) {
                 historyEntry.citations = cloneCitationsForHistory(pendingCitations);
             }
+            if (pendingResearchSteps.length > 0) {
+                historyEntry.researchSteps = pendingResearchSteps.slice();
+            }
             messagesHistory.push(historyEntry);
         } else if (currentMessageDiv) {
             // Cancelled before any text tokens were generated
@@ -1237,6 +1435,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         currentMessageDiv = null;
         currentMessageContent = '';
         pendingCitations = [];
+        pendingResearchSteps = [];
         autoSaveCurrentChat();
         if (userInput) userInput.focus();
     }
@@ -1299,6 +1498,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             currentMessageDiv = null;
             currentMessageContent = '';
             pendingCitations = [];
+            pendingResearchSteps = [];
 
             function extractCitationsFromData(dataObj) {
                 if (!dataObj) return [];
@@ -1308,8 +1508,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         return extractCitationsFromData(JSON.parse(dataObj));
                     } catch (e) { return []; }
                 }
+                // Forward-compat: scout/worker packet { citations: [{ url, title, span }] }
                 if (dataObj.citations && Array.isArray(dataObj.citations)) {
                     return dataObj.citations;
+                }
+                if (dataObj.packet && dataObj.packet.citations && Array.isArray(dataObj.packet.citations)) {
+                    return dataObj.packet.citations;
                 }
                 if (dataObj.response) {
                     const nested = extractCitationsFromData(dataObj.response);
@@ -1386,6 +1590,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 const toolName = dataObj.name || '';
                                                 // Tool invocation starting (has name/args, but no response yet)
                                                 if (toolName && !dataObj.response && !dataObj.structuredContent) {
+                                                    upsertResearchStep(toolName, 'running', dataObj.id);
                                                     if (toolName === 'search_github_issues') {
                                                         setToolStatus('Searching GitHub issues & discussions...', 'github');
                                                     } else if (toolName === 'search_kubeflow_code') {
@@ -1395,6 +1600,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     } else {
                                                         setToolStatus('Consulting Kubeflow resources...', 'search');
                                                     }
+                                                }
+
+                                                // Tool result returned -> mark the matching step done
+                                                if (toolName && (dataObj.response || dataObj.structuredContent)) {
+                                                    upsertResearchStep(toolName, 'done', dataObj.id, floExtractWorkerPacket(dataObj));
                                                 }
 
                                                 // Tool results with citations
@@ -1414,6 +1624,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                             if (toolCalls && Array.isArray(toolCalls)) {
                                 for (const tool of toolCalls) {
                                     const toolName = tool.name || (tool.function && tool.function.name) || '';
+                                    const legacyHasResult = !!(tool.function && tool.function.result);
+                                    if (toolName) {
+                                        upsertResearchStep(
+                                            toolName,
+                                            legacyHasResult ? 'done' : 'running',
+                                            tool.id,
+                                            legacyHasResult ? floExtractWorkerPacket(tool.function.result) : null
+                                        );
+                                    }
                                     if (toolName === 'search_github_issues') {
                                         setToolStatus('Searching GitHub issues & discussions...', 'github');
                                     } else if (toolName === 'search_kubeflow_code') {
@@ -1469,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
 
                 if (done) {
-                    if (currentMessageContent || pendingCitations.length > 0) {
+                    if (currentMessageContent || pendingCitations.length > 0 || pendingResearchSteps.length > 0) {
                         finalizeAssistantTurn(messagesHistory);
                     }
                     break;
@@ -1482,6 +1701,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Cleanup handled in stopGeneration()
             } else {
                 console.error('Error sending message to API:', error);
+                // Don't leave the trail stuck on "● LIVE" after a mid-stream failure.
+                finalizeLiveResearchTrail();
                 removeTypingIndicator();
                 removeToolStatus();
                 addMessage('Sorry, there was an error processing your request. Please try again.', 'bot');
@@ -1498,6 +1719,28 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function setToolStatus(text, iconType = 'search') {
+        // Live research trail already shows scout actions — skip the duplicate
+        // "Consulting…" / "Searching…" pills (ugly double loaders). Keep only a
+        // light writing cue after scouts finish, and only if no live trail host.
+        const trailLive = !!(
+            window.FLO_UI &&
+            window.FLO_UI.researchTrail &&
+            pendingResearchSteps &&
+            pendingResearchSteps.length > 0
+        );
+        if (trailLive && iconType !== 'sparkle') {
+            syncLiveResearchTrail();
+            scrollToBottom();
+            return;
+        }
+        if (trailLive && iconType === 'sparkle') {
+            // Prefer updating the trail summary feel; no second purple pill.
+            removeToolStatus();
+            syncLiveResearchTrail();
+            scrollToBottom();
+            return;
+        }
+
         let iconSvg = '';
         if (iconType === 'github') {
             iconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
@@ -1521,7 +1764,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (typingIndicator) {
             const contentDiv = typingIndicator.querySelector('.message-content');
             if (contentDiv) {
-                contentDiv.innerHTML = pillHtml;
+                // Preserve live trail if present; swap only the status pill.
+                let existingStatus = contentDiv.querySelector('#active-tool-status');
+                if (existingStatus) {
+                    existingStatus.outerHTML = pillHtml;
+                } else if (!contentDiv.querySelector('.flo-research')) {
+                    contentDiv.innerHTML = pillHtml;
+                } else {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = pillHtml;
+                    contentDiv.appendChild(temp.firstElementChild);
+                }
             }
         } else if (currentMessageDiv) {
             const messageContent = currentMessageDiv.querySelector('.message-content');
@@ -1543,6 +1796,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (c) c.innerHTML = pillHtml;
             }
         }
+        syncLiveResearchTrail();
         scrollToBottom();
     }
 
@@ -1551,8 +1805,279 @@ document.addEventListener('DOMContentLoaded', async function () {
         activeStatuses.forEach(el => el.remove());
     }
 
+    // Thin alias kept for any legacy call site: a bare tool mention means "done".
+    function recordResearchStep(toolName) {
+        upsertResearchStep(toolName, 'done');
+    }
+
+    // Host for the live trail: the in-flight bot bubble, or the typing indicator before first token.
+    function getLiveTrailHost() {
+        return currentMessageDiv || document.getElementById('typing-indicator');
+    }
+
+    function syncLiveResearchTrail() {
+        if (!pendingResearchSteps.length) return;
+        const host = getLiveTrailHost();
+        if (!host) return;
+        renderResearchTrail(host, pendingResearchSteps.slice(), { live: true });
+    }
+
+    // Short worker packet from a tool result: { query_used, findings, confidence, corpus }.
+    // Returns a trimmed copy (no raw MCP payload) or null when the result isn't packet-shaped.
+    function floExtractWorkerPacket(data, depth) {
+        depth = depth || 0;
+        if (data == null || depth > 5) return null;
+        if (typeof data === 'string') {
+            const t = data.trim();
+            if (t[0] !== '{' && t[0] !== '[') return null;
+            try { return floExtractWorkerPacket(JSON.parse(t), depth + 1); } catch (e) { return null; }
+        }
+        if (Array.isArray(data)) {
+            for (const item of data) {
+                const nested = floExtractWorkerPacket(item && item.text !== undefined ? item.text : item, depth + 1);
+                if (nested) return nested;
+            }
+            return null;
+        }
+        if (typeof data !== 'object') return null;
+        const looksLikePacket = data.query_used !== undefined &&
+            (data.findings !== undefined || data.confidence !== undefined || data.corpus !== undefined);
+        if (looksLikePacket) {
+            const clip = (v, n) => {
+                const s = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+                return s.length > n ? s.slice(0, n - 1) + '…' : s;
+            };
+            const rawFindings = Array.isArray(data.findings) ? data.findings : (data.findings ? [data.findings] : []);
+            const findings = rawFindings.slice(0, 3).map((f) => {
+                if (f && typeof f === 'object') return clip(f.text || f.summary || f.claim || f.title || '', 200);
+                return clip(f, 200);
+            }).filter(Boolean);
+            return {
+                query_used: clip(data.query_used, 200),
+                findings: findings,
+                confidence: data.confidence != null ? clip(data.confidence, 20) : '',
+                corpus: data.corpus != null ? clip(data.corpus, 40) : ''
+            };
+        }
+        for (const key of ['packet', 'response', 'structuredContent', 'result', 'content']) {
+            if (data[key] !== undefined) {
+                const nested = floExtractWorkerPacket(data[key], depth + 1);
+                if (nested) return nested;
+            }
+        }
+        return null;
+    }
+
+    function upsertResearchStep(toolName, status, callId, packet) {
+        if (!window.FLO_UI || !window.FLO_UI.researchTrail) return;
+        // Live scout trail is Research persona only (Docs keeps citations).
+        if (typeof currentPersona !== 'undefined' && currentPersona !== 'research') return;
+        const scout = floScoutForTool(toolName);
+        if (!scout) return;
+        const isRunning = status === 'running';
+        const summary = isRunning ? floRunningStatusForTool(toolName) : floStatusForTool(toolName);
+
+        // Match by call id when the stream provides one, else by the latest open step for this tool.
+        let existing = null;
+        for (let i = pendingResearchSteps.length - 1; i >= 0; i--) {
+            const s = pendingResearchSteps[i];
+            if (s.tool !== toolName || s.scout !== scout) continue;
+            if (callId && s.id) {
+                if (s.id === callId) { existing = s; break; }
+                continue;
+            }
+            if (s.status === 'running') { existing = s; break; }
+        }
+
+        if (existing) {
+            // Never regress a finished step back to running (repeated partial events).
+            if (existing.status === 'done' && isRunning) return;
+            existing.status = status;
+            existing.summary = summary;
+            if (packet && !isRunning) existing.packet = packet;
+        } else {
+            const last = pendingResearchSteps[pendingResearchSteps.length - 1];
+            // Legacy dedupe: bare "done" for the same tool as the last step just confirms it.
+            if (!isRunning && last && last.tool === toolName && last.scout === scout && !callId) {
+                last.status = 'done';
+                last.summary = summary;
+                if (packet) last.packet = packet;
+            } else {
+                const step = {
+                    scout: scout,
+                    tool: toolName,
+                    id: callId || undefined,
+                    status: status,
+                    corpus: floCorpusForTool(toolName),
+                    summary: summary
+                };
+                if (packet && !isRunning) step.packet = packet;
+                pendingResearchSteps.push(step);
+            }
+        }
+        syncLiveResearchTrail();
+    }
+
+    function renderResearchTrail(messageDiv, steps, opts) {
+        if (!window.FLO_UI || !window.FLO_UI.researchTrail || !messageDiv || !steps || !steps.length) return;
+        const live = !!(opts && opts.live);
+        const contentDiv = messageDiv.querySelector('.message-content') || messageDiv;
+        let details = contentDiv.querySelector('.flo-research');
+        const created = !details;
+        if (!details) {
+            details = document.createElement('details');
+            details.className = 'flo-research';
+            // Live trails start open so progress is visible; later user toggles are respected.
+            details.open = live || !!window.FLO_UI.researchTrailDefaultOpen;
+            const citations = contentDiv.querySelector('.citations-container');
+            const toolPill = contentDiv.querySelector('#active-tool-status');
+            if (citations) contentDiv.insertBefore(details, citations);
+            else if (toolPill) contentDiv.insertBefore(details, toolPill);
+            else contentDiv.appendChild(details);
+        }
+        const wasLive = details.classList.contains('flo-research-live');
+        details.classList.toggle('flo-research-live', live);
+        if (!created && wasLive && !live) {
+            // Finalize: collapse to the configured default.
+            details.open = !!window.FLO_UI.researchTrailDefaultOpen;
+        }
+
+        let summary = details.querySelector('.flo-research-summary');
+        if (!summary) {
+            summary = document.createElement('summary');
+            summary.className = 'flo-research-summary';
+            details.insertBefore(summary, details.firstChild);
+        }
+        summary.textContent = '';
+        const label = document.createElement('span');
+        label.className = 'flo-research-summary-label';
+        const kinds = [];
+        steps.forEach((s) => {
+            const k = s.scout || '';
+            if (k && !kinds.includes(k)) kinds.push(k);
+        });
+        if (live) {
+            const active = steps.filter((s) => s.status === 'running').length;
+            label.textContent = "Flo's agents";
+            summary.appendChild(label);
+            kinds.forEach((k) => {
+                const chip = document.createElement('span');
+                const key = String(k).toLowerCase().replace(/[^a-z]/g, '') || 'other';
+                chip.className = `flo-research-scout flo-research-scout--${key}`;
+                chip.textContent = k;
+                summary.appendChild(chip);
+            });
+            const badge = document.createElement('span');
+            badge.className = 'flo-research-live-badge';
+            badge.textContent = active > 0 ? `● LIVE · ${active} active` : '● LIVE';
+            summary.appendChild(badge);
+        } else {
+            label.textContent = `Flo's agents · ${steps.length} step${steps.length === 1 ? '' : 's'}`;
+            summary.appendChild(label);
+            kinds.forEach((k) => {
+                const chip = document.createElement('span');
+                const key = String(k).toLowerCase().replace(/[^a-z]/g, '') || 'other';
+                chip.className = `flo-research-scout flo-research-scout--${key}`;
+                chip.textContent = k;
+                summary.appendChild(chip);
+            });
+        }
+
+        let list = details.querySelector('.flo-research-list');
+        if (!list) {
+            list = document.createElement('ul');
+            list.className = 'flo-research-list';
+            details.appendChild(list);
+        }
+        list.textContent = '';
+        steps.forEach((step) => {
+            const li = document.createElement('li');
+            li.className = `flo-research-step flo-research-step--${step.status || 'done'}`;
+            // Cursor-like: spinner while running; action title; scout chip.
+            const row = document.createElement('div');
+            row.className = 'flo-research-step-main';
+            if (step.status === 'running') {
+                const spin = document.createElement('span');
+                spin.className = 'flo-research-spinner';
+                spin.setAttribute('aria-hidden', 'true');
+                row.appendChild(spin);
+            } else if (step.status === 'done') {
+                const check = document.createElement('span');
+                check.className = 'flo-research-check';
+                check.setAttribute('aria-hidden', 'true');
+                row.appendChild(check);
+            }
+            const title = document.createElement('span');
+            title.className = 'flo-research-title';
+            title.textContent = step.summary || step.tool || 'Working…';
+            const chip = document.createElement('span');
+            const scoutName = step.scout || 'Flo';
+            const scoutKey = String(scoutName).toLowerCase().replace(/[^a-z]/g, '');
+            chip.className = `flo-research-scout flo-research-scout--${scoutKey || 'other'}`;
+            chip.textContent = scoutName;
+            row.appendChild(title);
+            row.appendChild(chip);
+            li.appendChild(row);
+            const p = step.packet;
+            if (step.status === 'done' && p && (p.query_used || (p.findings && p.findings.length))) {
+                const pk = document.createElement('details');
+                pk.className = 'flo-research-packet';
+                // Live re-renders rebuild the list; remember the user's expand state.
+                pk.open = !!step.packetOpen;
+                pk.addEventListener('toggle', () => { step.packetOpen = pk.open; });
+                const pkSum = document.createElement('summary');
+                pkSum.textContent = 'Scout notes';
+                pk.appendChild(pkSum);
+                const addRow = (label, value) => {
+                    if (!value) return;
+                    const row = document.createElement('div');
+                    row.className = 'flo-research-packet-row';
+                    const k = document.createElement('strong');
+                    k.textContent = label + ': ';
+                    row.appendChild(k);
+                    row.appendChild(document.createTextNode(value));
+                    pk.appendChild(row);
+                };
+                addRow('Query', p.query_used);
+                addRow('Corpus', p.corpus);
+                addRow('Confidence', p.confidence);
+                if (p.findings && p.findings.length) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'flo-research-packet-findings';
+                    p.findings.forEach((f) => {
+                        const fi = document.createElement('li');
+                        fi.textContent = f;
+                        ul.appendChild(fi);
+                    });
+                    pk.appendChild(ul);
+                }
+                li.appendChild(pk);
+            }
+            list.appendChild(li);
+        });
+    }
+
+    // End the live research trail (stop, error, or normal completion): running steps become done,
+    // the trail re-renders non-live (no "● LIVE" badge) and the live class is removed.
+    function finalizeLiveResearchTrail() {
+        pendingResearchSteps.forEach((s) => {
+            if (s.status === 'running') {
+                s.status = 'done';
+                s.summary = floStatusForTool(s.tool);
+            }
+        });
+        const host = getLiveTrailHost();
+        if (host && pendingResearchSteps.length > 0) {
+            renderResearchTrail(host, pendingResearchSteps.slice(), { live: false });
+            const trail = host.querySelector('.flo-research');
+            if (trail) trail.classList.remove('flo-research-live');
+        }
+    }
+
     function finalizeAssistantTurn(messagesHistory) {
         removeToolStatus();
+        // Anything still "running" at end of turn is finished from the user's point of view.
+        finalizeLiveResearchTrail();
         if (currentMessageDiv && pendingCitations.length > 0) {
             renderCitationsOnDiv(currentMessageDiv, pendingCitations);
         }
@@ -1568,6 +2093,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (pendingCitations.length > 0) {
                 historyEntry.citations = cloneCitationsForHistory(pendingCitations);
             }
+            if (pendingResearchSteps.length > 0) {
+                historyEntry.researchSteps = pendingResearchSteps.slice();
+            }
             messagesHistory.push(historyEntry);
             attachFeedback(currentMessageDiv, historyEntry.turn, historyEntry);
         }
@@ -1575,6 +2103,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         currentMessageDiv = null;
         currentMessageContent = '';
         pendingCitations = [];
+        pendingResearchSteps = [];
         autoSaveCurrentChat();
         removeTypingIndicator();
         setStopButtonState(false);
@@ -1622,6 +2151,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 chatMessages.appendChild(currentMessageDiv);
                 removeTypingIndicator();
+                // Carry the live research trail from the typing indicator into the bubble.
+                if (pendingResearchSteps.length > 0) {
+                    renderResearchTrail(currentMessageDiv, pendingResearchSteps.slice(), { live: true });
+                }
             }
 
             // Append new content
@@ -1847,14 +2380,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Persona Switch Logic
     function selectPersona(persona) {
-        if (persona !== 'docs' && persona !== 'debug') return;
+        if (persona !== 'docs' && persona !== 'debug' && persona !== 'research') return;
         if (currentPersona === persona) return;
 
         currentPersona = persona;
         localStorage.setItem('chatbot_current_persona', persona);
 
         // Update pill-based selector active state
-        [personaOptionDocs, personaOptionDebug].forEach(el => {
+        [personaOptionDocs, personaOptionDebug, personaOptionResearch].forEach(el => {
             if (!el) return;
             const isActive = el.id === `persona-${persona}`;
             el.classList.toggle('active', isActive);
@@ -1884,10 +2417,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (mascotLbl) {
             mascotLbl.innerHTML = persona === 'debug'
                 ? `<span class="mascot-badge debug-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Flo Debugger</span>`
+                : persona === 'research'
+                ? `<span class="mascot-badge research-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Flo Research</span>`
                 : `<span class="mascot-badge docs-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Flo AI Companion</span>`;
         }
-
-
 
         updateThinkToggle();
 
@@ -1897,20 +2430,23 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function updateThinkToggle() {
-        if (!thinkToggle) return;
-        const available = currentPersona === 'docs';
-        const on = available && thinkingEnabled;
-        thinkToggle.classList.toggle('active', on);
-        thinkToggle.classList.toggle('disabled', !available);
-        thinkToggle.setAttribute('aria-checked', String(on));
-        thinkToggle.setAttribute('aria-disabled', String(!available));
-        const check = thinkToggle.querySelector('.persona-pill-check');
-        if (check) check.classList.toggle('visible', on);
+        const on = !!thinkingEnabled;
+        if (thinkToggle) {
+            thinkToggle.classList.toggle('active', on);
+            thinkToggle.setAttribute('aria-checked', String(on));
+            thinkToggle.title = on ? 'Think deeper (on)' : 'Think deeper (off)';
+        }
+        if (headerThinkBtn) {
+            headerThinkBtn.classList.toggle('active', on);
+            headerThinkBtn.classList.remove('disabled');
+            headerThinkBtn.disabled = false;
+            headerThinkBtn.setAttribute('aria-pressed', String(on));
+            headerThinkBtn.title = on ? 'Think deeper (on)' : 'Think deeper (off)';
+        }
     }
 
     // Kagent sessions are per agent, so switching modes starts a new chat.
     function toggleThinking() {
-        if (currentPersona !== 'docs') return;
         thinkingEnabled = !thinkingEnabled;
         updateThinkToggle();
         startNewChat();
@@ -1926,6 +2462,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         });
     }
+    if (headerThinkBtn) {
+        headerThinkBtn.addEventListener('click', toggleThinking);
+    }
+    updateThinkToggle();
 
     if (personaOptionDocs) {
         personaOptionDocs.addEventListener('click', function () {
@@ -1936,6 +2476,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (personaOptionDebug) {
         personaOptionDebug.addEventListener('click', function () {
             selectPersona('debug');
+        });
+    }
+
+    if (personaOptionResearch) {
+        personaOptionResearch.addEventListener('click', function () {
+            selectPersona('research');
         });
     }
 
@@ -2009,7 +2555,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         autoSaveCurrentChat();
     }
 
-    function addMessage(text, sender, citations = []) {
+    function addMessage(text, sender, citations = [], researchSteps = []) {
         if (!chatMessages) {
             console.error('Cannot add message: chat messages container not found');
             return;
@@ -2055,6 +2601,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         chatMessages.appendChild(messageDiv);
 
+        if (sender === 'bot' && researchSteps && researchSteps.length > 0) {
+            renderResearchTrail(messageDiv, researchSteps);
+        }
         if (sender === 'bot' && citations && citations.length > 0) {
             renderCitationsOnDiv(messageDiv, citations);
         }
@@ -2067,6 +2616,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         let url = '';
         let rawFile = '';
         let title = '';
+        let span = '';
 
         if (typeof citation === 'string') {
             url = citation;
@@ -2074,6 +2624,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             url = citation.url || citation.link || citation.href || '';
             rawFile = citation.file_path || citation.file || citation.filepath || '';
             title = citation.title || citation.section || '';
+            span = citation.span || citation.snippet || '';
         }
 
         if (!url && !rawFile) return null;
@@ -2109,10 +2660,19 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         } catch (e) {}
 
+        const corpus = floCorpusForUrl(url);
+        let subtitle = domain;
+        if (corpus === 'web' && floIsAllowlistedWebUrl(url)) {
+            subtitle = domain + ' · allowlisted';
+        }
+
         return {
             url: url || '#',
             title: title || 'Kubeflow Documentation',
-            domain: domain
+            domain: domain,
+            subtitle: subtitle,
+            corpus: corpus,
+            span: span
         };
     }
 
@@ -2123,11 +2683,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         citations.forEach(c => {
             if (!c) return;
             const url = typeof c === 'string' ? c : (c.url || c.link || c.href || '');
-            if (!url) return;
+            // Scout packets may cite file_path without url — still keep if path exists
+            const filePath = typeof c === 'object' ? (c.file_path || c.file || c.filepath || '') : '';
+            if (!url && !filePath) return;
 
             const alreadyExists = pendingCitations.some(existing => {
                 const existingUrl = typeof existing === 'string' ? existing : (existing.url || existing.link || existing.href || '');
-                return existingUrl === url;
+                const existingPath = typeof existing === 'object' ? (existing.file_path || existing.file || existing.filepath || '') : '';
+                if (url && existingUrl) return existingUrl === url;
+                if (filePath && existingPath) return existingPath === filePath;
+                return false;
             });
 
             if (!alreadyExists) {
@@ -2214,8 +2779,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         </svg>
                     </div>
                     <div class="citation-pill-text">
-                        <span class="citation-pill-title">${escapeHtml(info.title)}</span>
-                        <span class="citation-pill-sub">${escapeHtml(info.domain)}</span>
+                        <span class="citation-pill-title"><span class="citation-corpus citation-corpus--${info.corpus}">${escapeHtml(floCorpusLabel(info.corpus))}</span> ${escapeHtml(info.title)}</span>
+                        <span class="citation-pill-sub">${escapeHtml(info.subtitle || info.domain)}</span>
                     </div>
                 </div>
                 <span class="citation-external-icon">
