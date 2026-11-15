@@ -298,7 +298,7 @@ function createChatbotElements() {
         webToggle.className = 'composer-tool-chip';
         webToggle.setAttribute('role', 'switch');
         webToggle.setAttribute('aria-checked', 'false');
-        webToggle.title = 'Search allowlisted web · Artifact Hub, GitHub, blogs';
+        webToggle.title = 'Mandate live web search (off) · only when you need blogs / Helm / fresh pages';
         webToggle.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Web</span>
@@ -1515,40 +1515,49 @@ document.addEventListener('DOMContentLoaded', async function () {
             pendingCitations = [];
             pendingResearchSteps = [];
 
-            function extractCitationsFromData(dataObj) {
-                if (!dataObj) return [];
-                if (Array.isArray(dataObj)) return dataObj;
+            function extractCitationsFromData(dataObj, depth) {
+                depth = depth || 0;
+                if (dataObj == null || depth > 7) return [];
+                if (Array.isArray(dataObj)) {
+                    const out = [];
+                    dataObj.forEach((item) => {
+                        extractCitationsFromData(item, depth + 1).forEach((c) => out.push(c));
+                    });
+                    return out;
+                }
                 if (typeof dataObj === 'string') {
+                    const t = dataObj.trim();
+                    if (t[0] !== '{' && t[0] !== '[') return [];
                     try {
-                        return extractCitationsFromData(JSON.parse(dataObj));
-                    } catch (e) { return []; }
-                }
-                // Forward-compat: scout/worker packet { citations: [{ url, title, span }] }
-                if (dataObj.citations && Array.isArray(dataObj.citations)) {
-                    return dataObj.citations;
-                }
-                if (dataObj.packet && dataObj.packet.citations && Array.isArray(dataObj.packet.citations)) {
-                    return dataObj.packet.citations;
-                }
-                if (dataObj.response) {
-                    const nested = extractCitationsFromData(dataObj.response);
-                    if (nested.length > 0) return nested;
-                }
-                if (dataObj.structuredContent) {
-                    const nested = extractCitationsFromData(dataObj.structuredContent);
-                    if (nested.length > 0) return nested;
-                }
-                if (dataObj.result) {
-                    const nested = extractCitationsFromData(dataObj.result);
-                    if (nested.length > 0) return nested;
-                }
-                if (dataObj.content && Array.isArray(dataObj.content)) {
-                    for (const item of dataObj.content) {
-                        const nested = extractCitationsFromData(item.text || item);
-                        if (nested.length > 0) return nested;
+                        return extractCitationsFromData(JSON.parse(t), depth + 1);
+                    } catch (e) {
+                        return [];
                     }
                 }
-                return [];
+                if (typeof dataObj !== 'object') return [];
+
+                // Scout/worker packet { citations: [{ url, title, span, corpus? }] }
+                const out = [];
+                if (Array.isArray(dataObj.citations)) {
+                    dataObj.citations.forEach((c) => {
+                        if (!c) return;
+                        if (typeof c === 'string') out.push({ url: c, corpus: dataObj.corpus });
+                        else out.push(dataObj.corpus && !c.corpus ? Object.assign({}, c, { corpus: dataObj.corpus }) : c);
+                    });
+                }
+                const nestKeys = ['packet', 'response', 'structuredContent', 'result', 'content', 'text', 'output', 'message'];
+                nestKeys.forEach((key) => {
+                    if (dataObj[key] === undefined) return;
+                    extractCitationsFromData(dataObj[key], depth + 1).forEach((c) => out.push(c));
+                });
+                return out;
+            }
+
+            function ingestToolCitations(dataObj) {
+                const found = extractCitationsFromData(dataObj);
+                if (!found.length) return;
+                handleAPIResponse({ type: 'citations', citations: found });
+                setToolStatus('Analyzing sources & writing response...', 'sparkle');
             }
 
             while (true) {
@@ -1619,15 +1628,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                                 // Tool result returned -> mark the matching step done
                                                 if (toolName && (dataObj.response || dataObj.structuredContent)) {
-                                                    upsertResearchStep(toolName, 'done', dataObj.id, floExtractWorkerPacket(dataObj));
+                                                    const packet = floExtractWorkerPacket(dataObj);
+                                                    upsertResearchStep(toolName, 'done', dataObj.id, packet);
+                                                    if (packet && packet.citations && packet.citations.length) {
+                                                        ingestToolCitations({
+                                                            corpus: packet.corpus,
+                                                            citations: packet.citations
+                                                        });
+                                                    }
                                                 }
 
-                                                // Tool results with citations
-                                                const foundCitations = extractCitationsFromData(dataObj);
-                                                if (foundCitations && foundCitations.length > 0) {
-                                                    handleAPIResponse({ type: 'citations', citations: foundCitations });
-                                                    setToolStatus('Analyzing sources & writing response...', 'sparkle');
-                                                }
+                                                // Tool results with citations (MCP / agent-as-tool nesting)
+                                                ingestToolCitations(dataObj);
                                             }
                                         } catch (e) { /* ignore parse error */ }
                                     }
@@ -1662,11 +1674,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     if (rawResult) {
                                         try {
                                             const toolData = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
-                                            const foundCitations = extractCitationsFromData(toolData);
-                                            if (foundCitations && foundCitations.length > 0) {
-                                                handleAPIResponse({ type: 'citations', citations: foundCitations });
-                                                setToolStatus('Analyzing sources & writing response...', 'sparkle');
-                                            }
+                                            ingestToolCitations(toolData);
                                         } catch (e) {}
                                     }
                                 }
@@ -1867,11 +1875,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (f && typeof f === 'object') return clip(f.text || f.summary || f.claim || f.title || '', 200);
                 return clip(f, 200);
             }).filter(Boolean);
+            const rawCites = Array.isArray(data.citations) ? data.citations : [];
+            const citations = rawCites.slice(0, 6).map((c) => {
+                if (!c) return null;
+                if (typeof c === 'string') return { url: c, corpus: data.corpus || '' };
+                const url = c.url || c.link || c.href || '';
+                if (!url && !(c.file_path || c.file)) return null;
+                return {
+                    url: url,
+                    title: c.title || c.name || '',
+                    span: c.span || c.snippet || '',
+                    file_path: c.file_path || c.file || '',
+                    corpus: c.corpus || data.corpus || ''
+                };
+            }).filter(Boolean);
             return {
                 query_used: clip(data.query_used, 200),
                 findings: findings,
                 confidence: data.confidence != null ? clip(data.confidence, 20) : '',
-                corpus: data.corpus != null ? clip(data.corpus, 40) : ''
+                corpus: data.corpus != null ? clip(data.corpus, 40) : '',
+                citations: citations
             };
         }
         for (const key of ['packet', 'response', 'structuredContent', 'result', 'content']) {
@@ -1928,6 +1951,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                 };
                 if (packet && !isRunning) step.packet = packet;
                 pendingResearchSteps.push(step);
+            }
+        }
+        // Promote scout packet citations into Sources (trail chips ≠ citations).
+        if (!isRunning && packet && packet.citations && packet.citations.length) {
+            addCitations(packet.citations);
+            if (currentMessageDiv && pendingCitations.length > 0) {
+                renderCitationsOnDiv(currentMessageDiv, pendingCitations);
             }
         }
         syncLiveResearchTrail();
@@ -2461,8 +2491,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             webToggle.classList.toggle('active', on);
             webToggle.setAttribute('aria-checked', String(on));
             webToggle.title = on
-                ? 'Web search on · allowlisted hosts via Research lane'
-                : 'Search allowlisted web · Artifact Hub, GitHub, blogs';
+                ? 'Web mandated · live allowlisted search for this chat'
+                : 'Mandate live web search (off) · only when you need blogs / Helm / fresh pages';
+        }
+        if (userInput) {
+            userInput.placeholder = on ? 'Ask with live web…' : 'Message Flo...';
         }
     }
 
@@ -2561,9 +2594,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         userInput.value = '';
         userInput.style.height = 'auto';
 
-        // Web chip: nudge orch toward allowlisted web without changing the bubble text.
+        // Web chip = hard mandate. Research alone stays docs-first for "what is…".
         const apiMessage = webPreferred
-            ? `${message}\n\nPrefer allowlisted web search first (Artifact Hub, GitHub, Kubeflow blogs).`
+            ? `${message}\n\n[WEB_MANDATE] Use flo-web-worker first on allowlisted live web, then answer.`
             : message;
 
         showTypingIndicator();
@@ -2684,7 +2717,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         } catch (e) {}
 
-        const corpus = floCorpusForUrl(url);
+        // Prefer scout-declared corpus (web/issues/code) over URL heuristics —
+        // kubeflow.org hits from the web scout should stay WEB, not flip to DOCS.
+        const declared = String(
+            (typeof citation === 'object' && (citation.corpus || citation.source || citation.source_type)) || ''
+        ).toLowerCase();
+        const declaredOk = ['docs', 'issues', 'code', 'web'].includes(declared);
+        const corpus = declaredOk ? declared : floCorpusForUrl(url);
         let subtitle = domain;
         if (corpus === 'web' && floIsAllowlistedWebUrl(url)) {
             subtitle = domain + ' · allowlisted';

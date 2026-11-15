@@ -1263,6 +1263,12 @@
     border-color: color-mix(in srgb, var(--flo-primary) 40%, var(--flo-outline-variant));
 }
 
+.composer-tool-chip#web-toggle.active {
+    color: #e65100;
+    background: #fff3e0;
+    border-color: color-mix(in srgb, #e65100 35%, var(--flo-outline-variant));
+}
+
 .composer-tool-chip:focus-visible {
     outline: 2px solid var(--flo-primary);
     outline-offset: 1px;
