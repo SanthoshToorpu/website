@@ -144,15 +144,6 @@ function createChatbotElements() {
         optionsBtn.title = 'Options';
         optionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 12c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
 
-        // Always-visible Think control (sidebar pill only shows when expanded)
-        const headerThinkBtn = document.createElement('button');
-        headerThinkBtn.id = 'header-think-btn';
-        headerThinkBtn.className = 'header-icon-btn header-think-btn';
-        headerThinkBtn.type = 'button';
-        headerThinkBtn.title = 'Think deeper (off)';
-        headerThinkBtn.setAttribute('aria-pressed', 'false');
-        headerThinkBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>';
-
         const minBtn = document.createElement('button');
         minBtn.id = 'header-min-btn';
         minBtn.className = 'header-icon-btn';
@@ -172,7 +163,6 @@ function createChatbotElements() {
         closeBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>';
 
         headerActions.appendChild(optionsBtn);
-        headerActions.appendChild(headerThinkBtn);
         headerActions.appendChild(expandBtn);
         headerActions.appendChild(closeBtn);
 
@@ -274,8 +264,8 @@ function createChatbotElements() {
         const chatInputContainer = document.createElement('div');
         chatInputContainer.className = 'chat-input-container';
 
-        const composerTools = document.createElement('div');
-        composerTools.className = 'composer-tools';
+        const inputWrapper = document.createElement('div');
+        inputWrapper.className = 'input-wrapper';
 
         const thinkToggle = document.createElement('button');
         thinkToggle.id = 'think-toggle';
@@ -283,15 +273,11 @@ function createChatbotElements() {
         thinkToggle.className = 'composer-think-toggle';
         thinkToggle.setAttribute('role', 'switch');
         thinkToggle.setAttribute('aria-checked', 'false');
-        thinkToggle.title = 'Think deeper (off)';
+        thinkToggle.title = 'Think deeper (off) · more careful, slower';
         thinkToggle.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
             <span class="composer-think-label">Think</span>
         `;
-        composerTools.appendChild(thinkToggle);
-
-        const inputWrapper = document.createElement('div');
-        inputWrapper.className = 'input-wrapper';
 
         const userInput = document.createElement('textarea');
         userInput.id = 'user-input';
@@ -304,6 +290,7 @@ function createChatbotElements() {
         sendButton.className = 'send-button';
         sendButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
 
+        inputWrapper.appendChild(thinkToggle);
         inputWrapper.appendChild(userInput);
         inputWrapper.appendChild(sendButton);
 
@@ -311,7 +298,6 @@ function createChatbotElements() {
         disclaimer.className = 'disclaimer-text';
         disclaimer.innerHTML = 'AI answers can be wrong, so check the sources. Chats and feedback are recorded to improve Flo; please don\'t share personal information.';
 
-        chatInputContainer.appendChild(composerTools);
         chatInputContainer.appendChild(inputWrapper);
         chatInputContainer.appendChild(disclaimer);
 
@@ -750,7 +736,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     const personaOptionDebug = document.getElementById('persona-debug');
     const personaOptionResearch = document.getElementById('persona-research');
     const thinkToggle = document.getElementById('think-toggle');
-    const headerThinkBtn = document.getElementById('header-think-btn');
 
     // Validate all required elements exist
     if (!chatbotContainer || !chatbotBackdrop || !chatMessages || !userInput || !sendButton || !toggleButton || !chatbotToggle || !sidebarStrip || !sidebarNewChat || !sidebarExpand || !chatSidebar || !chatList) {
@@ -1111,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (scriptEl?.dataset?.agentBase) {
             return scriptEl.dataset.agentBase.replace(/\/$/, '') + KAGENT_A2A_PATH;
         }
-        return 'https://agent.example.com/a2a/docs-agent/kubeflow-docs-agent';
+        return 'https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent';
     }
 
     function getAPIUrl() {
@@ -1153,7 +1138,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     const SESSION_RETRY_DELAYS_MS = [1000, 3000];
 
     function getSessionUrl() {
-        return new URL(SESSION_PATH, getAPIUrl()).toString();
+        // Always hit the agent gateway origin (/api/session), not a persona path.
+        return new URL(SESSION_PATH, resolveAgentApiUrl()).toString();
     }
 
     // Decode a JWT payload without verifying it. Safe here because we are not
@@ -2434,14 +2420,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (thinkToggle) {
             thinkToggle.classList.toggle('active', on);
             thinkToggle.setAttribute('aria-checked', String(on));
-            thinkToggle.title = on ? 'Think deeper (on)' : 'Think deeper (off)';
-        }
-        if (headerThinkBtn) {
-            headerThinkBtn.classList.toggle('active', on);
-            headerThinkBtn.classList.remove('disabled');
-            headerThinkBtn.disabled = false;
-            headerThinkBtn.setAttribute('aria-pressed', String(on));
-            headerThinkBtn.title = on ? 'Think deeper (on)' : 'Think deeper (off)';
+            thinkToggle.title = on
+                ? 'Think deeper (on) · more careful, slower'
+                : 'Think deeper (off) · more careful, slower';
         }
     }
 
@@ -2455,15 +2436,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     if (thinkToggle) {
         thinkToggle.addEventListener('click', toggleThinking);
-        thinkToggle.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleThinking();
-            }
-        });
-    }
-    if (headerThinkBtn) {
-        headerThinkBtn.addEventListener('click', toggleThinking);
     }
     updateThinkToggle();
 

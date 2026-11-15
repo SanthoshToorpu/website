@@ -66,18 +66,21 @@
 
 <link rel="stylesheet" href="/assets/chatbot.css">
 <script>
-  // Local Hugo (:1313) cannot call agent.santhoshtoorpu.com (CORS allowlist).
-  // Default Docs agent; Flo Research persona selects flo-orch-poc in chatbot.js.
+  // Production / Netlify → agent.santhoshtoorpu.com (session at /api/session).
+  // Local Hugo (:1313) uses CORS proxy :18090.
   (function () {
     var h = location.hostname;
+    window.FLO_UI = Object.assign({}, window.FLO_UI || {}, {
+      researchTrail: true,
+      researchTrailDefaultOpen: false,
+      useOrchAgent: false
+    });
     if (h === "127.0.0.1" || h === "localhost") {
-      window.FLO_UI = Object.assign({}, window.FLO_UI || {}, {
-        researchTrail: true,
-        researchTrailDefaultOpen: false,
-        useOrchAgent: false
-      });
       window.KUBEFLOW_DOCS_AGENT_URL =
         "http://127.0.0.1:18090/a2a/docs-agent/kubeflow-docs-agent";
+    } else {
+      window.KUBEFLOW_DOCS_AGENT_URL =
+        "https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent";
     }
   })();
 </script>

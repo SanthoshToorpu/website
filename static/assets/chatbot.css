@@ -1189,22 +1189,16 @@
     background: var(--flo-surface);
 }
 
-.composer-tools {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
 .composer-think-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin: 0;
-    padding: 5px 10px 5px 8px;
-    border: 1px solid var(--flo-outline-variant);
+    gap: 5px;
+    flex-shrink: 0;
+    margin: 0 0 0 4px;
+    padding: 6px 10px;
+    border: 1px solid transparent;
     border-radius: 999px;
-    background: var(--flo-surface-container-lowest, #fff);
+    background: transparent;
     color: var(--flo-on-surface-variant);
     font-family: inherit;
     font-size: 12px;
@@ -1222,13 +1216,13 @@
 
 .composer-think-toggle:hover {
     background: var(--flo-state-hover);
-    border-color: var(--flo-outline);
+    color: var(--flo-on-surface);
 }
 
 .composer-think-toggle.active {
     color: var(--flo-on-primary-container);
     background: var(--flo-primary-container);
-    border-color: color-mix(in srgb, var(--flo-primary) 35%, var(--flo-outline-variant));
+    border-color: color-mix(in srgb, var(--flo-primary) 30%, transparent);
 }
 
 .composer-think-toggle:focus-visible {
@@ -1635,20 +1629,6 @@
     opacity: 1;
 }
 
-.header-think-btn.active {
-    color: var(--flo-primary);
-    background: var(--flo-primary-container, rgba(0, 0, 0, 0.06));
-}
-
-.header-think-btn.disabled {
-    opacity: 0.4;
-    pointer-events: none;
-}
-
-.header-think-btn svg {
-    width: 18px;
-    height: 18px;
-}
 
 /* ==========================================================================
    Small screens: full-screen sheet
