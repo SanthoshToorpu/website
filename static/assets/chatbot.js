@@ -277,16 +277,31 @@ function createChatbotElements() {
         const composerToolbar = document.createElement('div');
         composerToolbar.className = 'composer-toolbar';
 
+        const composerToolsLeft = document.createElement('div');
+        composerToolsLeft.className = 'composer-tools-left';
+
         const thinkToggle = document.createElement('button');
         thinkToggle.id = 'think-toggle';
         thinkToggle.type = 'button';
-        thinkToggle.className = 'composer-think-toggle';
+        thinkToggle.className = 'composer-tool-chip';
         thinkToggle.setAttribute('role', 'switch');
         thinkToggle.setAttribute('aria-checked', 'false');
-        thinkToggle.title = 'Think deeper (off) · more careful, slower';
+        thinkToggle.title = 'Think deeper · more careful, slower';
         thinkToggle.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
-            <span class="composer-think-label">Think</span>
+            <span>Think</span>
+        `;
+
+        const webToggle = document.createElement('button');
+        webToggle.id = 'web-toggle';
+        webToggle.type = 'button';
+        webToggle.className = 'composer-tool-chip';
+        webToggle.setAttribute('role', 'switch');
+        webToggle.setAttribute('aria-checked', 'false');
+        webToggle.title = 'Search allowlisted web · Artifact Hub, GitHub, blogs';
+        webToggle.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Web</span>
         `;
 
         const sendButton = document.createElement('button');
@@ -294,7 +309,9 @@ function createChatbotElements() {
         sendButton.className = 'send-button';
         sendButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
 
-        composerToolbar.appendChild(thinkToggle);
+        composerToolsLeft.appendChild(thinkToggle);
+        composerToolsLeft.appendChild(webToggle);
+        composerToolbar.appendChild(composerToolsLeft);
         composerToolbar.appendChild(sendButton);
 
         inputWrapper.appendChild(userInput);
@@ -742,6 +759,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const personaOptionDebug = document.getElementById('persona-debug');
     const personaOptionResearch = document.getElementById('persona-research');
     const thinkToggle = document.getElementById('think-toggle');
+    const webToggle = document.getElementById('web-toggle');
 
     // Validate all required elements exist
     if (!chatbotContainer || !chatbotBackdrop || !chatMessages || !userInput || !sendButton || !toggleButton || !chatbotToggle || !sidebarStrip || !sidebarNewChat || !sidebarExpand || !chatSidebar || !chatList) {
@@ -788,6 +806,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return 'docs';
     })();
     let thinkingEnabled = false; // Flag on all personas; Docs swaps to -think agent
+    let webPreferred = false; // Composer Web chip → orch + allowlisted web-first lane
 
     // TODO 2: Browser storage functions ✅
     function saveChatsToStorage() {
@@ -1105,9 +1124,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         return 'https://agent.santhoshtoorpu.com/a2a/docs-agent/kubeflow-docs-agent';
     }
 
+    function usesResearchLane() {
+        return currentPersona === 'research' || !!webPreferred;
+    }
+
     function getAPIUrl() {
         let agentName = 'kubeflow-docs-agent';
-        if (currentPersona === 'research') {
+        if (usesResearchLane()) {
             agentName = 'flo-orch-poc';
         } else if (currentPersona === 'debug') {
             agentName = 'kubeflow-debug-agent';
@@ -1863,7 +1886,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     function upsertResearchStep(toolName, status, callId, packet) {
         if (!window.FLO_UI || !window.FLO_UI.researchTrail) return;
         // Live scout trail is Research persona only (Docs keeps citations).
-        if (typeof currentPersona !== 'undefined' && currentPersona !== 'research') return;
+        if (typeof currentPersona !== 'undefined' && !usesResearchLane()) return;
         const scout = floScoutForTool(toolName);
         if (!scout) return;
         const isRunning = status === 'running';
@@ -2432,6 +2455,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
+    function updateWebToggle() {
+        const on = !!webPreferred;
+        if (webToggle) {
+            webToggle.classList.toggle('active', on);
+            webToggle.setAttribute('aria-checked', String(on));
+            webToggle.title = on
+                ? 'Web search on · allowlisted hosts via Research lane'
+                : 'Search allowlisted web · Artifact Hub, GitHub, blogs';
+        }
+    }
+
     // Kagent sessions are per agent, so switching modes starts a new chat.
     function toggleThinking() {
         thinkingEnabled = !thinkingEnabled;
@@ -2440,10 +2474,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log(`Thinking ${thinkingEnabled ? 'on' : 'off'}`);
     }
 
+    function toggleWebPreferred() {
+        webPreferred = !webPreferred;
+        updateWebToggle();
+        // Web forces flo-orch-poc — new session when leaving the docs/debug agent.
+        currentContextId = generateUUID();
+        console.log(`Web preferred ${webPreferred ? 'on' : 'off'}`);
+    }
+
     if (thinkToggle) {
         thinkToggle.addEventListener('click', toggleThinking);
     }
+    if (webToggle) {
+        webToggle.addEventListener('click', toggleWebPreferred);
+    }
     updateThinkToggle();
+    updateWebToggle();
 
     if (personaOptionDocs) {
         personaOptionDocs.addEventListener('click', function () {
@@ -2506,30 +2552,30 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (!message || isTyping) return;
         removeSuggestions();
 
-        // Add user message to history
+        // Add user message to history / UI as typed (no hidden prompt pollution).
         messagesHistory.push({
             role: 'user',
             content: message
         });
-
-        // Add user message to UI
         addMessage(message, 'user');
         userInput.value = '';
         userInput.style.height = 'auto';
 
-        // Show typing indicator
+        // Web chip: nudge orch toward allowlisted web without changing the bubble text.
+        const apiMessage = webPreferred
+            ? `${message}\n\nPrefer allowlisted web search first (Artifact Hub, GitHub, Kubeflow blogs).`
+            : message;
+
         showTypingIndicator();
 
-        // Send message to API
         if (isConnected) {
-            sendMessageToAPI(message, messagesHistory);
+            sendMessageToAPI(apiMessage, messagesHistory);
         } else {
             console.error('API not connected');
             removeTypingIndicator();
             addMessage('Unable to connect to the server. Please try again later.', 'bot');
         }
 
-        // Auto-save after user message
         autoSaveCurrentChat();
     }
 

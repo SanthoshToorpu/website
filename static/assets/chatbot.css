@@ -1214,10 +1214,18 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding-top: 4px;
+    padding-top: 6px;
 }
 
-.composer-think-toggle {
+.composer-tools-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.composer-tool-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -1236,26 +1244,26 @@
     transition: background 0.15s var(--flo-ease), border-color 0.15s var(--flo-ease), color 0.15s var(--flo-ease);
 }
 
-.composer-think-toggle svg {
+.composer-tool-chip svg {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
     color: currentColor;
 }
 
-.composer-think-toggle:hover {
+.composer-tool-chip:hover {
     background: var(--flo-state-hover);
     color: var(--flo-on-surface);
     border-color: var(--flo-outline);
 }
 
-.composer-think-toggle.active {
+.composer-tool-chip.active {
     color: var(--flo-on-primary-container);
     background: var(--flo-primary-container);
     border-color: color-mix(in srgb, var(--flo-primary) 40%, var(--flo-outline-variant));
 }
 
-.composer-think-toggle:focus-visible {
+.composer-tool-chip:focus-visible {
     outline: 2px solid var(--flo-primary);
     outline-offset: 1px;
 }
